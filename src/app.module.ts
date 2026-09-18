@@ -13,13 +13,27 @@ import { IncidentsModule } from './incidents/incidents.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
-import { StatusController } from './status/status.controller.js';
+import { MailboxModule } from './mailbox/mailbox.module.js';
+import { StatusModule } from './status/status.module.js';
 import { template } from './template.js';
 import { XrayModule } from './xray/xray.module.js';
+
+/**
+ * What nestjs-mvc signs with: flash cookies, signed URLs. APP_KEY in
+ * production; a fixed key in development, so a restart of `nest start
+ * --watch` does not break the links in the demo mailbox.
+ */
+function signingKeys() {
+  if (process.env.APP_KEY || process.env.NODE_ENV === 'production')
+    return undefined; // nestjs-mvc reads APP_KEY, and insists on it in production.
+  return 'pager-pulse-development-only-signing-key';
+}
 
 @Module({
   imports: [
     DatabaseModule,
+    MailboxModule,
+    StatusModule,
     AuthModule,
     IncidentsModule,
     AlertsModule,
@@ -27,6 +41,7 @@ import { XrayModule } from './xray/xray.module.js';
     OnCallModule,
     MvcModule.forRoot({
       template,
+      keys: signingKeys(),
       version: process.env.GIT_COMMIT,
       // Vite runs inside this process in development; production resolves the
       // hashed assets from the build manifest.
@@ -52,7 +67,7 @@ import { XrayModule } from './xray/xray.module.js';
     // After MvcModule: its interceptor has to see props before they resolve.
     XrayModule,
   ],
-  controllers: [DashboardController, StatusController],
+  controllers: [DashboardController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

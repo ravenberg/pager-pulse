@@ -11,3 +11,5 @@ export * from './user.entity.js';
 export * from './escalation-path.entity.js';
 export * from './escalation.entity.js';
 export * from './schedule-override.entity.js';
+export * from './outbox-email.entity.js';
+export * from './status-subscriber.entity.js';

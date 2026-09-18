@@ -17,6 +17,7 @@ import {
   SERVICE_STATUS,
   type ServiceStatus,
 } from '../../components/status';
+import { type Calendar, StatusCalendar } from '../../components/StatusCalendar';
 import { capitalize, dateTime, day } from '../../lib/format';
 import { statusLayout } from '../../layouts/StatusLayout';
 
@@ -32,6 +33,7 @@ interface Props {
   }[];
   active: PublicIncident[];
   past: PublicIncident[];
+  calendar: Calendar;
 }
 
 function UptimeBars({
@@ -123,7 +125,13 @@ export function IncidentCard({
   );
 }
 
-export default function Show({ overall, services, active, past }: Props) {
+export default function Show({
+  overall,
+  services,
+  active,
+  past,
+  calendar,
+}: Props) {
   const headline = SERVICE_STATUS[overall];
   return (
     <Stack gap="xl">
@@ -197,6 +205,8 @@ export default function Show({ overall, services, active, past }: Props) {
           ))}
         </Stack>
       </Card>
+
+      <StatusCalendar calendar={calendar} />
 
       <Stack gap="sm">
         <Title order={4}>Past incidents</Title>

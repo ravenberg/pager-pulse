@@ -8,11 +8,13 @@ import {
   EscalationPath,
   FollowUp,
   Incident,
+  OutboxEmail,
   PostMortem,
   Schedule,
   ScheduleMember,
   ScheduleOverride,
   Service,
+  StatusSubscriber,
   TimelineEntry,
   User,
 } from './entities/index.js';
@@ -31,6 +33,8 @@ const entities = [
   ScheduleOverride,
   EscalationPath,
   Escalation,
+  StatusSubscriber,
+  OutboxEmail,
 ];
 
 @Global()

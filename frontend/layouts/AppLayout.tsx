@@ -21,6 +21,7 @@ import {
   IconFlame,
   IconLayoutDashboard,
   IconLogout,
+  IconMail,
   IconPhoneCall,
   IconPlus,
   IconStack2,
@@ -157,6 +158,16 @@ function Shell({ children }: { children: ReactNode }) {
             />
           ))}
         </Stack>
+        {user?.role === 'admin' && (
+          <NavLink
+            component={Link}
+            href="/mailbox"
+            onClick={close}
+            label="Mailbox"
+            active={path.startsWith('/mailbox')}
+            leftSection={<IconMail size={18} stroke={1.6} />}
+          />
+        )}
         <NavLink
           href="/status"
           target="_blank"

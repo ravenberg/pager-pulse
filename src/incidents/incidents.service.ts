@@ -10,6 +10,7 @@ import {
   Repository,
   type SelectQueryBuilder,
 } from 'typeorm';
+import { SubscriptionsService } from '../status/subscriptions.service.js';
 import {
   FollowUp,
   Incident,
@@ -100,6 +101,7 @@ export class IncidentsService {
     private readonly followUps: Repository<FollowUp>,
     @InjectRepository(Service) private readonly services: Repository<Service>,
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /** A private incident the viewer may not see is reported as missing. */
@@ -283,15 +285,18 @@ export class IncidentsService {
     return this.record(incident, author, 'post_mortem', body);
   }
 
-  private record(
+  private async record(
     incident: Incident,
     author: User | null,
     kind: TimelineKind,
     body: string,
     isPublic = false,
   ) {
-    return this.timeline.save(
+    const entry = await this.timeline.save(
       this.timeline.create({ incident, author, kind, body, isPublic }),
     );
+    // What goes on the status page goes to its subscribers too.
+    if (isPublic) await this.subscriptions.notify(incident, body);
+    return entry;
   }
 }

@@ -189,10 +189,9 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     title: 'Signed URLs',
     code: '@ValidSignature()',
     blurb:
-      'Links that carry their own proof and expiry, for confirm or unsubscribe links, without a table of tokens.',
+      'Links that carry their own proof and expiry, like the unsubscribe link in every status email: no login, no table of tokens. Bound to a value (bind), a link dies when that value changes, which makes the confirmation link single-use.',
     group: 'Security',
     color: 'grape',
-    planned: 'Phase 5 · status subscriptions',
   },
   'partial-reload': {
     title: 'Partial reload',

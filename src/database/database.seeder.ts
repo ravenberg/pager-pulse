@@ -79,6 +79,7 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
       await this.seedPostIncident();
     if ((await this.db.getRepository(EscalationPath).count()) === 0)
       await this.seedEscalation();
+    await this.seedWriteUp();
   }
 
   private async seed() {
@@ -452,5 +453,43 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
       });
     }
     this.logger.log('Seeded escalation paths and an override.');
+  }
+
+  /**
+   * A public incident with a published post-mortem, so the status page has
+   * a write-up to show. Only when there is none.
+   */
+  private async seedWriteUp() {
+    const postMortems = this.db.getRepository(PostMortem);
+    const shown = await postMortems.countBy({
+      status: 'published',
+      incident: { isPublic: true },
+    });
+    if (shown > 0) return;
+    const incident = await this.db
+      .getRepository(Incident)
+      .createQueryBuilder('incident')
+      .leftJoin(PostMortem, 'pm', 'pm.incidentId = incident.id')
+      .leftJoinAndSelect('incident.lead', 'lead')
+      .where('incident.isPublic = 1')
+      .andWhere("incident.status = 'resolved'")
+      .andWhere('pm.id IS NULL')
+      .orderBy('incident.resolvedAt', 'DESC')
+      .getOne();
+    if (!incident) return;
+    await postMortems.save({
+      incident,
+      author: incident.lead,
+      status: 'published',
+      publishedAt: new Date(),
+      summary: `“${incident.title}” lasted a little over an hour. We rolled back the change that caused it and service recovered.`,
+      impact:
+        'About one in twenty requests to the affected service failed. No data was lost.',
+      rootCause:
+        'A configuration change lowered a connection limit. Under the morning peak the pool ran out and requests queued until they timed out.',
+      lessons:
+        'Configuration changes now roll out behind the same canary as code, and we alert when the pool is 80% used rather than full.',
+    });
+    this.logger.log(`Seeded a public write-up for INC-${incident.id}.`);
   }
 }
