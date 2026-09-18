@@ -1,4 +1,4 @@
-import { Anchor, Card, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Card, Group, Stack, Text, Title } from '@mantine/core';
 import { Head, Link } from 'nestjs-mvc/react';
 import { type PublicIncident } from '../../components/status';
 import { dateTime, duration } from '../../lib/format';
@@ -22,9 +22,12 @@ const SECTIONS: [keyof WriteUp, string][] = [
 
 export default function Incident({
   incident,
+  internalUrl,
   writeUp,
 }: {
   incident: PublicIncident;
+  /** Only for teammates who are logged in. */
+  internalUrl: string | null;
   writeUp: WriteUp | null;
 }) {
   return (
@@ -35,9 +38,16 @@ export default function Incident({
           content={incident.updates[0]?.body ?? incident.title}
         />
       </Head>
-      <Anchor component={Link} href="/status" size="sm" c="dimmed">
-        ← Current status
-      </Anchor>
+      <Group justify="space-between">
+        <Anchor component={Link} href="/status" size="sm" c="dimmed">
+          ← Current status
+        </Anchor>
+        {internalUrl && (
+          <Anchor component={Link} href={internalUrl} size="sm">
+            Open in PagerPulse →
+          </Anchor>
+        )}
+      </Group>
       {writeUp && (
         <Card withBorder padding="lg" radius="lg" data-xray="writeUp">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>

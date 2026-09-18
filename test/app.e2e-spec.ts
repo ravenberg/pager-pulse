@@ -103,6 +103,27 @@ describe('pages', () => {
     expect(response.text).toContain('Subscribe to updates');
   });
 
+  it('renders a public incident on the server for guests only (disableSsr)', async () => {
+    const [incident] = await db.query(
+      'SELECT id, title FROM incident WHERE isPublic = 1 AND isPrivate = 0 LIMIT 1',
+    );
+    const html = (who: TestAgent) =>
+      who.get(`/status/incidents/${incident.id}`).set('Accept', 'text/html');
+
+    const guest = await html(browser().agent).expect(200);
+    expect(guest.text).toContain('Current status');
+    expect(guest.text).not.toContain('Open in PagerPulse');
+
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const teammate = await html(ada.agent).expect(200);
+    // The same page, rendered in the browser: only the page object is sent.
+    expect(teammate.text).not.toContain('Current status');
+    expect(teammate.text).toContain(
+      `"internalUrl":"\\/incidents\\/${incident.id}"`,
+    );
+  });
+
   it('paints the dashboard first and sends each block of numbers after it', async () => {
     const ada = browser();
     await ada.login('ada@pagerpulse.dev');

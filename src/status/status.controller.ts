@@ -20,6 +20,7 @@ import {
 } from 'nestjs-mvc';
 import { Between, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { z } from 'zod';
+import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import {
   Incident,
@@ -27,6 +28,7 @@ import {
   type Severity,
   Service,
   TimelineEntry,
+  type User,
 } from '../database/entities/index.js';
 import { reference } from '../incidents/serializers.js';
 import { SubscriptionsService } from './subscriptions.service.js';
@@ -269,7 +271,15 @@ export class StatusController {
 
   @Get('incidents/:id')
   @View('Status/Incident')
-  async incident(@Param('id', ParseIntPipe) id: number) {
+  async incident(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User | undefined,
+  ) {
+    // Rendered on the server for who needs it: customers, crawlers, link
+    // previews. A teammate who is logged in follows the link from inside the
+    // app, has the JavaScript already, and gets the page rendered in the
+    // browser: @Ssr() is the default, disableSsr() decides per request.
+    if (user) this.view.disableSsr();
     const incident = await this.incidents.findOne({
       where: { id, isPublic: true },
       relations: { services: true },
@@ -285,6 +295,8 @@ export class StatusController {
     });
     return {
       incident: await this.publicIncident(incident),
+      // Teammates can jump to the incident as the team sees it.
+      internalUrl: user ? `/incidents/${incident.id}` : null,
       writeUp: postMortem && {
         summary: postMortem.summary,
         impact: postMortem.impact,
