@@ -111,18 +111,18 @@ const KIND_COLOR: Record<PropKind, string> = {
   once: 'lime',
 };
 
-/** Each kind of prop, to its page in the feature reference. */
+/** Each kind of prop, to the part of the docs that explains it. */
 const KIND_DOCS: Record<PropKind, string> = {
-  eager: '/docs/view',
-  lazy: '/docs/lazy-props',
-  defer: '/docs/defer',
-  optional: '/docs/optional',
-  always: '/docs/always',
-  merge: '/docs/merge',
-  prepend: '/docs/merge#append-and-prepend',
-  'deep-merge': '/docs/merge#deep-merge',
-  scroll: '/docs/scroll',
-  once: '/docs/once-props',
+  eager: '/docs/your-first-page#the-controller',
+  lazy: '/docs/your-first-page#props-that-do-some-work',
+  defer: '/docs/loading-data#load-after-the-page-shows',
+  optional: '/docs/loading-data#load-only-when-asked',
+  always: '/docs/shared-data#data-that-must-stay-fresh',
+  merge: '/docs/merging-props#add-to-the-end',
+  prepend: '/docs/merging-props#add-to-the-front',
+  'deep-merge': '/docs/merging-props#nested-objects',
+  scroll: '/docs/infinite-scroll',
+  once: '/docs/once',
 };
 
 /** Opens the docs in a new tab, next to the app. */

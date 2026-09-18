@@ -37,7 +37,7 @@ export interface Feature {
   blurb: string;
   group: FeatureGroup;
   color: string;
-  /** Its page in the feature reference of the nestjs-mvc docs. */
+  /** The part of the nestjs-mvc docs that explains it. */
   docs: string;
 }
 
@@ -53,7 +53,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The handler returns plain props; nestjs-mvc hands them to the React page of that name. Its first load is HTML, every visit after it JSON.',
     group: 'Pages',
     color: 'gray',
-    docs: '/docs/view',
+    docs: '/docs/your-first-page#the-controller',
   },
   shared: {
     title: 'Shared data',
@@ -62,7 +62,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Props every page gets, like the logged-in user and the open-incident badge, set once in middleware instead of in each handler.',
     group: 'Pages',
     color: 'gray',
-    docs: '/docs/shared-props',
+    docs: '/docs/shared-data',
   },
   'auth-redirect': {
     title: 'Login redirect',
@@ -71,7 +71,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "The guard's 401 becomes a redirect to /login; after logging in, intended() sends you back where you were going.",
     group: 'Security',
     color: 'grape',
-    docs: '/docs/login-redirects',
+    docs: '/docs/authentication#the-protected-page',
   },
   ssr: {
     title: 'Server-side rendering',
@@ -80,7 +80,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'This route renders HTML on the server, for search engines, link previews and people without JavaScript. Other routes stay client-rendered.',
     group: 'Pages',
     color: 'teal',
-    docs: '/docs/ssr',
+    docs: '/docs/server-rendering',
   },
   'encrypt-history': {
     title: 'History encryption',
@@ -89,7 +89,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The page state saved in browser history is encrypted, per route with @EncryptHistory() or per request, like here for private incidents. When the user changes, nestjs-mvc clears history, so the back button cannot bring it back.',
     group: 'Security',
     color: 'grape',
-    docs: '/docs/encrypt-history',
+    docs: '/docs/history-encryption#encrypt-the-history',
   },
   lazy: {
     title: 'Lazy prop',
@@ -98,7 +98,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'A closure instead of a value: it only runs when the prop is in the response, so a partial reload that leaves it out skips the query entirely.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/lazy-props',
+    docs: '/docs/your-first-page#props-that-do-some-work',
   },
   defer: {
     title: 'Deferred prop',
@@ -107,7 +107,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Left out of the first response; the page paints and fetches it straight after, in one request per group.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/defer',
+    docs: '/docs/loading-data#load-after-the-page-shows',
   },
   optional: {
     title: 'Optional prop',
@@ -116,7 +116,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Never sent unless the client asks for it by name in a partial reload, for a tab or a dialog that may never open.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/optional',
+    docs: '/docs/loading-data#load-only-when-asked',
   },
   always: {
     title: 'Always prop',
@@ -125,7 +125,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "Sent with every response, partial reloads included, even when they didn't ask for it. The paging banner is shared this way, so any page's poll brings a new page along.",
     group: 'Props',
     color: 'blue',
-    docs: '/docs/always',
+    docs: '/docs/shared-data#data-that-must-stay-fresh',
   },
   merge: {
     title: 'Merge prop',
@@ -134,7 +134,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The client adds the new items to what it has instead of replacing the list; matchOn updates an item it already has in place.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/merge',
+    docs: '/docs/merging-props#add-to-the-end',
   },
   prepend: {
     title: 'Prepend prop',
@@ -142,7 +142,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     blurb: 'Like merge, but new items go on top: a feed of newer entries.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/merge#append-and-prepend',
+    docs: '/docs/merging-props#add-to-the-front',
   },
   'deep-merge': {
     title: 'Deep merge prop',
@@ -150,7 +150,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     blurb: 'Merges objects and arrays recursively into what the client has.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/merge#deep-merge',
+    docs: '/docs/merging-props#nested-objects',
   },
   scroll: {
     title: 'Infinite scroll',
@@ -159,7 +159,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'A paginated list the client extends page by page; the server sends the cursor, the client appends and keeps the URL in step.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/scroll',
+    docs: '/docs/infinite-scroll',
   },
   once: {
     title: 'Once prop',
@@ -168,7 +168,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Resolved once and remembered by the client across visits; the server skips the closure when the client says it already has it.',
     group: 'Props',
     color: 'blue',
-    docs: '/docs/once-props',
+    docs: '/docs/once',
   },
   validation: {
     title: 'Validation → errors',
@@ -177,7 +177,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "A Zod schema on the body. When it fails, the user goes back to the form and the messages arrive as the page's errors prop.",
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/validation',
+    docs: '/docs/forms#the-controller',
   },
   'error-bag': {
     title: 'Error bags',
@@ -186,7 +186,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Two forms on one page: each names a bag, and its validation messages come back under errors.<bag>, so they never show up in the other form.',
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/error-bags',
+    docs: '/docs/forms#two-forms-on-one-page',
   },
   flash: {
     title: 'Flash messages',
@@ -195,7 +195,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'A one-time message carried across the redirect in a signed cookie, without a session store.',
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/flash',
+    docs: '/docs/flash-messages',
   },
   'skip-csrf': {
     title: 'CSRF exemption',
@@ -204,7 +204,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Pages are CSRF-protected without configuration; webhooks and bearer-token endpoints opt out.',
     group: 'Security',
     color: 'grape',
-    docs: '/docs/skip-csrf',
+    docs: '/docs/csrf#webhooks-and-apis',
   },
   'signed-url': {
     title: 'Signed URLs',
@@ -213,7 +213,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Links that carry their own proof and expiry, like the unsubscribe link in every status email: no login, no table of tokens. Bound to a value (bind), a link dies when that value changes, which makes the confirmation link single-use.',
     group: 'Security',
     color: 'grape',
-    docs: '/docs/signed-url-api',
+    docs: '/docs/signed-urls',
   },
   'partial-reload': {
     title: 'Partial reload',
@@ -222,7 +222,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The client asks for some props of the current page; the server runs the handler but resolves only those.',
     group: 'Client',
     color: 'cyan',
-    docs: '/docs/partial-reloads',
+    docs: '/docs/loading-data#asking-for-props-by-name',
   },
   poll: {
     title: 'Polling',
@@ -231,7 +231,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'A partial reload on a timer: live data with no WebSocket and no separate API.',
     group: 'Client',
     color: 'cyan',
-    docs: '/docs/polling',
+    docs: '/docs/loading-data#refresh-on-a-timer',
   },
   prefetch: {
     title: 'Prefetching',
@@ -240,7 +240,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The next page is fetched on hover, so the click shows it instantly from the cache.',
     group: 'Client',
     color: 'cyan',
-    docs: '/docs/prefetch-requests',
+    docs: '/docs/prefetching',
   },
   precognition: {
     title: 'Live validation',
@@ -249,6 +249,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "Precognition: the form asks the server's own validation pipe about a field as you type, without running the handler.",
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/precognition',
+    docs: '/docs/live-validation',
   },
 };
