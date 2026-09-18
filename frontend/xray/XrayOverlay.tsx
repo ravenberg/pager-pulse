@@ -66,13 +66,17 @@ function highlight(
     );
 }
 
-/** Briefly pulses what a partial reload, poll or deferred request just refreshed. */
-function usePulse(entries: RequestEntry[]) {
+/**
+ * Briefly pulses what a partial reload, poll or deferred request just
+ * refreshed, while the drawer is open. Closed, X-ray leaves the page alone.
+ */
+function usePulse(entries: RequestEntry[], active: boolean) {
   const seen = useMemo(() => new Set<string>(), []);
   useEffect(() => {
     for (const entry of entries) {
       if (entry.outcome !== 'ok' || seen.has(entry.id)) continue;
       seen.add(entry.id);
+      if (!active) continue;
       if (!['partial', 'poll', 'deferred', 'scroll'].includes(entry.kind))
         continue;
       for (const prop of entry.only) {
@@ -80,7 +84,7 @@ function usePulse(entries: RequestEntry[]) {
         setTimeout(() => highlight(prop, false, 'data-xray-pulse'), 900);
       }
     }
-  }, [entries, seen]);
+  }, [entries, seen, active]);
 }
 
 const KIND_COLOR: Record<PropKind, string> = {
@@ -332,7 +336,7 @@ export function XrayOverlay() {
     installRequestLog(page.url);
     setMounted(true);
   }, [report, page.url]);
-  usePulse(entries);
+  usePulse(entries, opened);
 
   const onPage = useMemo(
     () => requestsOnPage(entries, page.url),

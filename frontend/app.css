@@ -34,9 +34,9 @@ body {
 
 @keyframes xray-pulse {
   from {
-    box-shadow: 0 0 0 4px var(--mantine-color-cyan-4);
+    box-shadow: 0 0 0 2px var(--mantine-color-cyan-3);
   }
   to {
-    box-shadow: 0 0 0 12px transparent;
+    box-shadow: 0 0 0 8px transparent;
   }
 }
