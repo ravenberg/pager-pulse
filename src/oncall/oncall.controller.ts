@@ -22,6 +22,7 @@ import {
   ScheduleOverride,
   User,
 } from '../database/entities/index.js';
+import { peopleOnce } from '../common/lookups.js';
 import { person } from '../incidents/serializers.js';
 import { EscalationsService } from './escalations.service.js';
 import { OnCallService } from './oncall.service.js';
@@ -139,7 +140,7 @@ export class OnCallController {
   @View('OnCall/Create')
   async create() {
     return {
-      users: (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      users: peopleOnce(this.users),
     };
   }
 
@@ -176,7 +177,7 @@ export class OnCallController {
       schedules: (await this.schedules.find({ order: { name: 'ASC' } })).map(
         (s) => ({ id: s.id, name: s.name }),
       ),
-      users: (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      users: peopleOnce(this.users),
     };
   }
 
@@ -254,8 +255,7 @@ export class OnCallController {
           startsAt: o.startsAt.toISOString(),
           endsAt: o.endsAt.toISOString(),
         })),
-      users: async () =>
-        (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      users: peopleOnce(this.users),
       preview: optional(async () => {
         const parsed = OverrideSchema.safeParse({
           userId: previewUserId,

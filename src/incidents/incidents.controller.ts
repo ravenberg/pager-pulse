@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { View, ViewService, merge, optional, scroll } from 'nestjs-mvc';
@@ -15,6 +16,8 @@ import { Not, Repository } from 'typeorm';
 import { z } from 'zod';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Responder } from '../auth/roles.decorator.js';
+import { peopleOnce, servicesOnce } from '../common/lookups.js';
+import { toCsv } from '../common/csv.js';
 import { paginate } from '../common/pagination.js';
 import {
   Alert,
@@ -90,31 +93,93 @@ export class IncidentsController {
       }),
       // Infinite scroll: the client asks for ?page=N and appends `incidents.data`.
       // Changing a filter resets the prop, so the list starts over.
-      incidents: scroll(() => {
-        const query = this.repository
-          .createQueryBuilder('incident')
-          .leftJoinAndSelect('incident.lead', 'lead')
-          .leftJoinAndSelect('incident.services', 'service')
-          .orderBy('incident.declaredAt', 'DESC');
-        restrictVisible(query, user);
-
-        if (state === 'open') query.andWhere("incident.status != 'resolved'");
-        if (state === 'resolved')
-          query.andWhere("incident.status = 'resolved'");
-        if ((SEVERITIES as readonly string[]).includes(severity)) {
-          query.andWhere('incident.severity = :severity', { severity });
-        }
-        if (search) {
-          const id = Number(search.replace(/^INC-/i, ''));
-          query.andWhere('(incident.title LIKE :term OR incident.id = :id)', {
-            term: `%${search}%`,
-            id,
-          });
-        }
-
-        return paginate(query, { page, perPage: 20, map: incidentRow });
-      }),
+      incidents: scroll(() =>
+        paginate(this.filtered({ state, severity, search }, user), {
+          page,
+          perPage: 20,
+          map: incidentRow,
+        }),
+      ),
     };
+  }
+
+  /** The list as it is filtered, as a spreadsheet: a plain download, not a page. */
+  @Get('export')
+  async export(
+    @Query('state') state = 'open',
+    @Query('severity') severity = '',
+    @Query('search') search = '',
+    @CurrentUser() user: User,
+  ) {
+    const incidents = await this.filtered({ state, severity, search }, user)
+      .take(5000)
+      .getMany();
+    const rows = incidents.map((incident) => [
+      reference(incident),
+      incident.title,
+      incident.severity,
+      incident.status,
+      incident.services.map((service) => service.name).join(', '),
+      incident.lead?.name ?? '',
+      incident.declaredAt.toISOString(),
+      incident.resolvedAt?.toISOString() ?? '',
+      incident.resolvedAt
+        ? Math.round(
+            (incident.resolvedAt.getTime() - incident.declaredAt.getTime()) /
+              60_000,
+          )
+        : '',
+    ]);
+    const csv = toCsv([
+      [
+        'Reference',
+        'Title',
+        'Severity',
+        'Status',
+        'Services',
+        'Lead',
+        'Declared',
+        'Resolved',
+        'Minutes to resolve',
+      ],
+      ...rows,
+    ]);
+    const day = new Date().toISOString().slice(0, 10);
+    return new StreamableFile(Buffer.from(csv), {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="incidents-${day}.csv"`,
+    });
+  }
+
+  /** The incidents list's filters, applied to a query this user may see. */
+  private filtered(
+    filters: { state: string; severity: string; search: string },
+    user: User,
+  ) {
+    const query = this.repository
+      .createQueryBuilder('incident')
+      .leftJoinAndSelect('incident.lead', 'lead')
+      .leftJoinAndSelect('incident.services', 'service')
+      .orderBy('incident.declaredAt', 'DESC');
+    restrictVisible(query, user);
+
+    if (filters.state === 'open')
+      query.andWhere("incident.status != 'resolved'");
+    if (filters.state === 'resolved')
+      query.andWhere("incident.status = 'resolved'");
+    if ((SEVERITIES as readonly string[]).includes(filters.severity)) {
+      query.andWhere('incident.severity = :severity', {
+        severity: filters.severity,
+      });
+    }
+    if (filters.search) {
+      const id = Number(filters.search.replace(/^INC-/i, ''));
+      query.andWhere('(incident.title LIKE :term OR incident.id = :id)', {
+        term: `%${filters.search}%`,
+        id,
+      });
+    }
+    return query;
   }
 
   @Get('create')
@@ -122,10 +187,8 @@ export class IncidentsController {
   @View('Incidents/Create')
   async create() {
     return {
-      services: (await this.services.find({ order: { position: 'ASC' } })).map(
-        (s) => ({ id: s.id, name: s.name }),
-      ),
-      users: (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      services: servicesOnce(this.services),
+      users: peopleOnce(this.users),
     };
   }
 
@@ -212,8 +275,7 @@ export class IncidentsController {
           })
         ).map(alertRow),
       ),
-      users: async () =>
-        (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      users: peopleOnce(this.users),
       // For the escalate dialog, when it opens.
       escalationPaths: optional(async () =>
         (await this.paths.find({ order: { name: 'ASC' } })).map(

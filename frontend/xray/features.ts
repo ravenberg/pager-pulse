@@ -144,7 +144,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
   },
   once: {
     title: 'Once prop',
-    code: 'once(() => users)',
+    code: "once(() => users, { as: 'people' })",
     blurb:
       'Resolved once and remembered by the client across visits; the server skips the closure when the client says it already has it.',
     group: 'Props',

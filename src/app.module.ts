@@ -10,6 +10,7 @@ import { DashboardController } from './dashboard/dashboard.controller.js';
 import { DatabaseModule } from './database/database.module.js';
 import type { User } from './database/entities/index.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
+import { InsightsModule } from './insights/insights.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
@@ -39,6 +40,7 @@ function signingKeys() {
     IncidentsModule,
     AlertsModule,
     PostMortemsModule,
+    InsightsModule,
     OnCallModule,
     MvcModule.forRoot({
       template,

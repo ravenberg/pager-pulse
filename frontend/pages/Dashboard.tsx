@@ -126,6 +126,7 @@ export default function Dashboard({
                   padding="sm"
                   component={Link}
                   href={`/incidents/${incident.id}`}
+                  prefetch
                 >
                   <Group justify="space-between" wrap="nowrap">
                     <div>

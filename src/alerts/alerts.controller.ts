@@ -32,6 +32,7 @@ import {
   User,
 } from '../database/entities/index.js';
 import { reference } from '../incidents/serializers.js';
+import { servicesOnce } from '../common/lookups.js';
 import { SourceSchema } from './alerts.schemas.js';
 import { AlertsService, newToken } from './alerts.service.js';
 import { alertRow } from './serializers.js';
@@ -169,9 +170,7 @@ export class AlertsController {
             : null,
         };
       }),
-      services: (await this.services.find({ order: { position: 'ASC' } })).map(
-        (service) => ({ id: service.id, name: service.name }),
-      ),
+      services: servicesOnce(this.services),
     };
   }
 

@@ -11,7 +11,12 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
-import { IconLock, IconPlus, IconSearch } from '@tabler/icons-react';
+import {
+  IconDownload,
+  IconLock,
+  IconPlus,
+  IconSearch,
+} from '@tabler/icons-react';
 import { InfiniteScroll, Link, router, usePage } from 'nestjs-mvc/react';
 import { useState } from 'react';
 import { SeverityBadge, StatusBadge } from '../../components/Badges';
@@ -61,15 +66,28 @@ export default function Index({ filters, counts, incidents }: Props) {
         title="Incidents"
         description={`${counts.open} open · ${counts.resolved} resolved`}
         actions={
-          props.auth.user?.role !== 'viewer' && (
+          <Group gap="xs">
+            {/* A plain link: the browser downloads the file. */}
             <Button
-              component={Link}
-              href="/incidents/create"
-              leftSection={<IconPlus size={16} />}
+              component="a"
+              href={`/incidents/export?${new URLSearchParams(
+                Object.entries(filters).filter(([, value]) => value),
+              )}`}
+              variant="default"
+              leftSection={<IconDownload size={16} />}
             >
-              Declare incident
+              Export CSV
             </Button>
-          )
+            {props.auth.user?.role !== 'viewer' && (
+              <Button
+                component={Link}
+                href="/incidents/create"
+                leftSection={<IconPlus size={16} />}
+              >
+                Declare incident
+              </Button>
+            )}
+          </Group>
         }
       />
 
@@ -149,6 +167,8 @@ export default function Index({ filters, counts, incidents }: Props) {
                         size="sm"
                         component={Link}
                         href={`/incidents/${incident.id}`}
+                        // Fetched on hover, so the click shows it at once.
+                        prefetch
                       >
                         {incident.title}
                       </Text>
