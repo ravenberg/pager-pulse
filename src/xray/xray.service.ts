@@ -203,7 +203,13 @@ export class XrayService implements OnApplicationBootstrap {
       if (value instanceof AlwaysProp) return [{ path, kind: 'always' }];
       if (value instanceof OptionalProp) return [{ path, kind: 'optional' }];
       if (value instanceof DeferProp)
-        return [{ path, kind: 'defer', detail: `group ${value.group}` }];
+        return [
+          {
+            path,
+            kind: 'defer',
+            detail: `group ${value.group}${value.rescue ? ' · rescued if it throws' : ''}`,
+          },
+        ];
       if (value instanceof ScrollProp)
         return [
           {

@@ -11,6 +11,7 @@ import {
 } from '../incidents/incidents.service.js';
 import { OnCallService } from '../oncall/oncall.service.js';
 import { InsightsService, RANGES } from './insights.service.js';
+import { UpstreamService } from './upstream.service.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -23,6 +24,7 @@ export class DashboardController {
     @InjectRepository(FollowUp)
     private readonly followUps: Repository<FollowUp>,
     private readonly insights: InsightsService,
+    private readonly upstream: UpstreamService,
   ) {}
 
   @Get()
@@ -69,6 +71,13 @@ export class DashboardController {
         'breakdown',
       ),
       people: defer(async () => this.insights.people(await load()), 'people'),
+      // Other people's status pages: slow at times, down at others. In its
+      // own group so it never holds up the insights, and rescued: if it
+      // throws, the page gets `rescuedProps: ['upstream']`, not an error.
+      upstream: defer(() => this.upstream.statuses(), {
+        group: 'upstream',
+        rescue: true,
+      }),
     };
   }
 }

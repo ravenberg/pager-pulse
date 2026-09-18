@@ -14,15 +14,35 @@ import { DataSource } from 'typeorm';
  */
 let app: INestApplication;
 let db: DataSource;
+/** Stands in for the providers' status pages: no network in tests. */
+const upstream = {
+  down: false,
+  async statuses() {
+    if (this.down) throw new Error('No status page answered.');
+    return [
+      {
+        name: 'GitHub',
+        url: 'https://www.githubstatus.com',
+        indicator: 'none',
+        description: 'All Systems Operational',
+      },
+    ];
+  },
+};
 
 beforeAll(async () => {
   process.env.DATABASE_PATH = ':memory:';
   // Imported late: the database module reads DATABASE_PATH when it loads.
   const { AppModule } = await import('../src/app.module.js');
   const { configureApp } = await import('../src/app.setup.js');
+  const { UpstreamService } =
+    await import('../src/dashboard/upstream.service.js');
   const module = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(UpstreamService)
+    .useValue(upstream)
+    .compile();
   app = configureApp(module.createNestApplication());
   await app.init();
   db = app.get(DataSource);
@@ -91,12 +111,13 @@ describe('pages', () => {
     expect(page.component).toBe('Dashboard');
     expect(page.props.active.length).toBeGreaterThan(0);
     expect(page.props.summary).toBeUndefined();
-    // One group per block: four follow-up requests, in parallel.
+    // One group per block: five follow-up requests, in parallel.
     expect(page.deferredProps).toEqual({
       summary: ['summary'],
       weekly: ['weekly'],
       breakdown: ['breakdown'],
       people: ['people'],
+      upstream: ['upstream'],
     });
 
     const block = (
@@ -107,6 +128,29 @@ describe('pages', () => {
     ).body;
     expect(block.props.summary.total).toBeGreaterThan(0);
     expect(block.props.active).toBeUndefined();
+  });
+
+  it('leaves out a widget whose source is down, instead of failing (rescue)', async () => {
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const widget = {
+      'X-Inertia-Partial-Component': 'Dashboard',
+      'X-Inertia-Partial-Data': 'upstream',
+    };
+
+    const up = (await ada.visit('/', widget)).body;
+    expect(up.props.upstream[0].name).toBe('GitHub');
+    expect(up.rescuedProps ?? []).toEqual([]);
+
+    upstream.down = true;
+    try {
+      const down = await ada.visit('/', widget);
+      expect(down.status).toBe(200);
+      expect(down.body.props.upstream).toBeUndefined();
+      expect(down.body.rescuedProps).toEqual(['upstream']);
+    } finally {
+      upstream.down = false;
+    }
   });
 
   it('leaves similar incidents out until the card asks for them (WhenVisible)', async () => {

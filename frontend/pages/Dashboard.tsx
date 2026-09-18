@@ -17,6 +17,7 @@ import {
   type InsightsProps,
 } from '../components/InsightsSection';
 import { PageHeader } from '../components/PageHeader';
+import { UpstreamCard, type UpstreamStatus } from '../components/UpstreamCard';
 import { relative } from '../lib/format';
 import { appLayout } from '../layouts/AppLayout';
 import type { FollowUpRow, IncidentRow, Person, SharedProps } from '../types';
@@ -29,12 +30,14 @@ interface Props extends InsightsProps {
     current: { user: Person | null; endsAt: string } | null;
   }[];
   myFollowUps: FollowUpRow[];
+  upstream?: UpstreamStatus[];
 }
 
 export default function Dashboard({
   active,
   onCall,
   myFollowUps,
+  upstream,
   ...insights
 }: Props) {
   const { props } = usePage<SharedProps>();
@@ -105,6 +108,8 @@ export default function Dashboard({
               ))}
             </Stack>
           </Card>
+
+          <UpstreamCard upstream={upstream} />
 
           <Card withBorder padding="lg" data-xray="myFollowUps">
             <Group justify="space-between" mb="md">
