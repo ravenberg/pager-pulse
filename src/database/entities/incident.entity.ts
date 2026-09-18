@@ -73,6 +73,10 @@ export class Incident {
   @Column('datetime', { nullable: true })
   resolvedAt: Date | null;
 
+  /** The video call responders gather in, made when someone first joins. */
+  @Column('varchar', { nullable: true })
+  callUrl: string | null;
+
   @UpdateDateColumn()
   updatedAt: Date;
 }

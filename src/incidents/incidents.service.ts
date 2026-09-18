@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -270,6 +271,19 @@ export class IncidentsService {
     }
 
     await this.incidents.save(incident);
+  }
+
+  /**
+   * The incident's call, started on first use. Jitsi rooms need no account:
+   * an unguessable name is the room. Only responders may start one.
+   */
+  async callFor(incident: Incident, user: User): Promise<string | null> {
+    if (incident.callUrl) return incident.callUrl;
+    if (user.role === 'viewer') return null;
+    incident.callUrl = `https://meet.jit.si/PagerPulse-INC-${incident.id}-${randomBytes(6).toString('hex')}`;
+    await this.incidents.update(incident.id, { callUrl: incident.callUrl });
+    await this.record(incident, user, 'call', `${user.name} started a call.`);
+    return incident.callUrl;
   }
 
   async postUpdate(

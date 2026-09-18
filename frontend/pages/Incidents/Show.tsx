@@ -34,6 +34,7 @@ import {
   IconMessage,
   IconSpeakerphone,
   IconUserStar,
+  IconVideo,
   IconWorld,
 } from '@tabler/icons-react';
 import {
@@ -74,7 +75,8 @@ interface Entry {
     | 'severity'
     | 'lead'
     | 'follow_up'
-    | 'post_mortem';
+    | 'post_mortem'
+    | 'call';
   body: string;
   isPublic: boolean;
   author: Person | null;
@@ -88,6 +90,7 @@ interface Props {
   incident: IncidentRow & {
     summary: string;
     isPublic: boolean;
+    hasCall: boolean;
     reporter: Person | null;
     postMortem: { status: PostMortemStatus; publishedAt: string | null } | null;
   };
@@ -115,6 +118,7 @@ const KIND_ICON = {
   lead: IconUserStar,
   follow_up: IconChecklist,
   post_mortem: IconNotebook,
+  call: IconVideo,
 };
 
 const STATUSES: IncidentStatus[] = [
@@ -628,13 +632,27 @@ export default function Show({
           </Text>{' '}
           {incident.title}
         </Title>
-        {canRespond && incident.status !== 'resolved' && (
-          <EscalateButton
-            paths={escalationPaths}
-            incidentId={incident.id}
-            reason={`${incident.reference}: ${incident.title}`}
-          />
-        )}
+        <Group gap="xs" wrap="nowrap">
+          {(incident.hasCall ||
+            (canRespond && incident.status !== 'resolved')) && (
+            // The server answers with the call's address, not a page:
+            // view.location(), and the browser leaves for it.
+            <Button
+              variant="default"
+              leftSection={<IconVideo size={16} />}
+              onClick={() => router.post(`/incidents/${incident.id}/call`)}
+            >
+              {incident.hasCall ? 'Join the call' : 'Start a call'}
+            </Button>
+          )}
+          {canRespond && incident.status !== 'resolved' && (
+            <EscalateButton
+              paths={escalationPaths}
+              incidentId={incident.id}
+              reason={`${incident.reference}: ${incident.title}`}
+            />
+          )}
+        </Group>
       </Group>
       <Group mb="lg" gap="xs" data-xray="incident">
         <Lifecycle

@@ -254,6 +254,7 @@ export class IncidentsController {
       incident: {
         ...incidentRow(incident),
         summary: incident.summary,
+        hasCall: !!incident.callUrl,
         isPublic: incident.isPublic,
         reporter: person(incident.reporter),
         postMortem: postMortem && {
@@ -339,6 +340,22 @@ export class IncidentsController {
       user,
     );
     return this.view.back();
+  }
+
+  /**
+   * Leaves PagerPulse for the incident's call. From an Inertia visit,
+   * view.location() answers 409 with X-Inertia-Location, and the client does
+   * a full page visit there instead of expecting a page back.
+   */
+  @Post(':id/call')
+  async call(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
+    const url = await this.incidents.callFor(
+      await this.incidents.find(id, user),
+      user,
+    );
+    if (!url)
+      return this.view.flash('error', 'Nobody has started a call yet.').back();
+    return this.view.location(url);
   }
 
   @Post(':id/updates')

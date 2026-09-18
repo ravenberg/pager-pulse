@@ -298,6 +298,55 @@ describe('forms', () => {
   });
 });
 
+describe('incident call', () => {
+  it('sends the browser to the call with view.location(), starting it once', async () => {
+    const [incident] = await db.query(
+      "SELECT id FROM incident WHERE status != 'resolved' AND isPrivate = 0 AND callUrl IS NULL LIMIT 1",
+    );
+    const url = `/incidents/${incident.id}/call`;
+    const referer = `/incidents/${incident.id}`;
+
+    // A viewer can join a call, not start one.
+    const barbara = browser();
+    await barbara.login('barbara@pagerpulse.dev');
+    await barbara.visit(referer);
+    const none = await barbara.agent
+      .post(url)
+      .set({ ...barbara.inertia(), Referer: referer });
+    expect(none.status).toBe(302);
+    expect(none.headers.location).toBe(referer);
+
+    // An Inertia visit gets 409 + X-Inertia-Location: go there yourself.
+    const grace = browser();
+    await grace.login('grace@pagerpulse.dev');
+    await grace.visit(referer);
+    const started = await grace.agent
+      .post(url)
+      .set({ ...grace.inertia(), Referer: referer });
+    expect(started.status).toBe(409);
+    const call = started.headers['x-inertia-location'];
+    expect(call).toMatch(
+      new RegExp(`^https://meet\\.jit\\.si/PagerPulse-INC-${incident.id}-`),
+    );
+
+    // Anyone joining later lands in the same call; the timeline says it once.
+    const joined = await barbara.agent
+      .post(url)
+      .set({ ...barbara.inertia(), Referer: referer });
+    expect(joined.headers['x-inertia-location']).toBe(call);
+    const [{ n }] = await db.query(
+      "SELECT COUNT(*) AS n FROM timeline_entry WHERE incidentId = ? AND kind = 'call'",
+      [incident.id],
+    );
+    expect(n).toBe(1);
+
+    // Without Inertia it is a plain redirect.
+    const plain = await grace.agent.post(url).set('Referer', referer);
+    expect([302, 303]).toContain(plain.status);
+    expect(plain.headers.location).toBe(call);
+  });
+});
+
 describe('saved views', () => {
   it('keeps named filters per person, and refuses a name twice on its own form', async () => {
     const grace = browser();
