@@ -1,4 +1,4 @@
-import { router } from 'nestjs-mvc/react';
+import { http, router } from 'nestjs-mvc/react';
 
 export type RequestKind =
   | 'load'
@@ -10,7 +10,8 @@ export type RequestKind =
   | 'prefetch'
   | 'cached'
   | 'mutation'
-  | 'validate';
+  | 'validate'
+  | 'http';
 
 export interface RequestEntry {
   id: string;
@@ -171,6 +172,50 @@ export function installRequestLog(initialUrl: string) {
           ? 'errors'
           : 'ok',
     });
+  });
+
+  // useHttp: JSON requests through the same client as the router, but
+  // without X-Inertia, so the router never hears of them. Wrap the client.
+  const client = http.getClient();
+  let httpId = 0;
+  http.setClient({
+    request: async (config) => {
+      const inertia = Object.keys(config.headers ?? {}).some(
+        (h) => h.toLowerCase() === 'x-inertia',
+      );
+      if (inertia) return client.request(config);
+      const id = `http-${++httpId}`;
+      const start = performance.now();
+      const url = new URL(config.url, location.href);
+      add({
+        id,
+        at: Date.now(),
+        kind: 'http',
+        method: config.method,
+        url: url.pathname + url.search,
+        only: [],
+        except: [],
+        ms: null,
+        bytes: null,
+        outcome: 'pending',
+      });
+      const done = (outcome: RequestEntry['outcome']) =>
+        update(id, { ms: Math.round(performance.now() - start), outcome });
+      try {
+        const response = await client.request(config);
+        done('ok');
+        update(id, { bytes: response.data.length || null });
+        return response;
+      } catch (error) {
+        done(
+          (error as Error).name === 'HttpCancelledError' ||
+            (error as Error).message === 'Request was cancelled'
+            ? 'cancelled'
+            : 'errors',
+        );
+        throw error;
+      }
+    },
   });
 
   // Precognition's validate-only requests go through laravel-precognition's

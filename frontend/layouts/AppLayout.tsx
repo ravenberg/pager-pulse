@@ -5,6 +5,7 @@ import {
   Burger,
   Button,
   Group,
+  Kbd,
   Menu,
   NavLink,
   Stack,
@@ -24,10 +25,15 @@ import {
   IconLogout,
   IconPhoneCall,
   IconPlus,
+  IconSearch,
 } from '@tabler/icons-react';
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
 import { ColorSchemeToggle } from '../components/ColorSchemeToggle';
+import {
+  CommandPalette,
+  showCommandPalette,
+} from '../components/CommandPalette';
 import { PagingBanner } from '../components/PagingBanner';
 import { Providers } from '../components/Providers';
 import { capitalize } from '../lib/format';
@@ -81,6 +87,21 @@ function Shell({ children }: { children: ReactNode }) {
             </Text>
           </Group>
           <Group gap="sm">
+            {user && (
+              <Button
+                variant="default"
+                c="dimmed"
+                fw={400}
+                leftSection={<IconSearch size={16} />}
+                rightSection={<Kbd size="xs">⌘K</Kbd>}
+                onClick={showCommandPalette}
+                visibleFrom="md"
+                w={220}
+                justify="space-between"
+              >
+                Search…
+              </Button>
+            )}
             {user && user.role !== 'viewer' && (
               <Button
                 component={Link}
@@ -169,6 +190,7 @@ function Shell({ children }: { children: ReactNode }) {
       <AppShell.Main>
         <PagingBanner />
         {children}
+        {user && <CommandPalette />}
       </AppShell.Main>
     </AppShell>
   );

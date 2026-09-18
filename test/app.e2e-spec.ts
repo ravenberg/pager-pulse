@@ -207,6 +207,40 @@ describe('forms', () => {
   });
 });
 
+describe('search palette', () => {
+  it('answers useHttp with JSON, without private incidents for those who may not see them', async () => {
+    const [secret] = await db.query(
+      'SELECT id, title FROM incident WHERE isPrivate = 1 LIMIT 1',
+    );
+    const search = (who: ReturnType<typeof browser>, q: string) =>
+      who.agent
+        .get(`/search?q=${encodeURIComponent(q)}`)
+        .set('Accept', 'application/json');
+
+    // No page, no redirect: a JSON client gets a status code.
+    expect((await search(browser(), 'api')).status).toBe(401);
+
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const found = (await search(ada, `INC-${secret.id}`)).body;
+    expect(found.incidents.map((i: { id: number }) => i.id)).toContain(
+      secret.id,
+    );
+    expect(
+      (await search(ada, 'api')).body.services.map(
+        (s: { name: string }) => s.name,
+      ),
+    ).toContain('API');
+
+    const barbara = browser();
+    await barbara.login('barbara@pagerpulse.dev');
+    const hidden = (await search(barbara, secret.title)).body;
+    expect(hidden.incidents.map((i: { id: number }) => i.id)).not.toContain(
+      secret.id,
+    );
+  });
+});
+
 describe('catalog', () => {
   it('sends the kept services list again after a change (view.refresh)', async () => {
     const ada = browser();

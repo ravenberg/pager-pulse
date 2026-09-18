@@ -109,6 +109,7 @@ const REQUEST_COLOR: Record<RequestKind, string> = {
   cached: 'lime',
   mutation: 'orange',
   validate: 'orange',
+  http: 'grape',
 };
 
 const kb = (bytes: number | null) =>
