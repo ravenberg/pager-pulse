@@ -77,24 +77,30 @@ describe('pages', () => {
     expect(response.text).toContain('Subscribe to updates');
   });
 
-  it('paints the dashboard first and sends the stats in a follow-up request', async () => {
+  it('paints the dashboard first and sends each block of numbers after it', async () => {
     const ada = browser();
     await ada.login('ada@pagerpulse.dev');
 
     const page = (await ada.visit('/')).body;
     expect(page.component).toBe('Dashboard');
-    expect(page.props.stats).toBeUndefined();
-    expect(page.deferredProps).toEqual({ default: ['stats'] });
+    expect(page.props.active.length).toBeGreaterThan(0);
+    expect(page.props.summary).toBeUndefined();
+    // One group per block: four follow-up requests, in parallel.
+    expect(page.deferredProps).toEqual({
+      summary: ['summary'],
+      weekly: ['weekly'],
+      breakdown: ['breakdown'],
+      people: ['people'],
+    });
 
-    const deferred = (
-      await ada.visit('/', {
+    const block = (
+      await ada.visit('/?days=90', {
         'X-Inertia-Partial-Component': 'Dashboard',
-        'X-Inertia-Partial-Data': 'stats',
+        'X-Inertia-Partial-Data': 'summary',
       })
     ).body;
-    expect(Object.keys(deferred.props)).toContain('stats');
-    expect(deferred.props.stats.total).toBeGreaterThan(0);
-    expect(deferred.props.active).toBeUndefined();
+    expect(block.props.summary.total).toBeGreaterThan(0);
+    expect(block.props.active).toBeUndefined();
   });
 
   it('sends a once() list only until the browser says it has it', async () => {
@@ -160,6 +166,23 @@ describe('forms', () => {
     expect(await db.query('SELECT COUNT(*) AS n FROM incident')).toEqual(
       before,
     );
+  });
+
+  it('searches by title or by number', async () => {
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const search = async (term: string) =>
+      (
+        await ada.visit(
+          `/incidents?state=all&search=${encodeURIComponent(term)}`,
+        )
+      ).body.props.incidents.data.map(
+        (i: { reference: string }) => i.reference,
+      );
+
+    expect(await search('no such incident')).toEqual([]);
+    expect(await search('INC-3')).toContain('INC-3');
+    expect((await search('memory leak')).length).toBeGreaterThan(0);
   });
 
   it('exports the filtered list as CSV', async () => {

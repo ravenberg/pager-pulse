@@ -1,6 +1,7 @@
-import { Card, Group, SegmentedControl, Stack, Text } from '@mantine/core';
+import { Card, Group, SegmentedControl, Stack } from '@mantine/core';
 import { router } from 'nestjs-mvc/react';
 import { FollowUpItem } from '../../components/FollowUpItem';
+import { EmptyState } from '../../components/Illustration';
 import { PageHeader } from '../../components/PageHeader';
 import { appLayout } from '../../layouts/AppLayout';
 import type { FollowUpRow } from '../../types';
@@ -46,7 +47,9 @@ export default function Index({ filters, followUps, canRespond }: Props) {
       <Card withBorder padding="lg">
         <Stack gap="md">
           {followUps.length === 0 && (
-            <Text c="dimmed">Nothing here. Enjoy the quiet.</Text>
+            <EmptyState illustration="done" title="Nothing left to do">
+              Follow-ups from incidents land here, until they are ticked off.
+            </EmptyState>
           )}
           {followUps.map((item) => (
             <FollowUpItem

@@ -23,6 +23,7 @@ import {
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import { useState } from 'react';
 import { EscalateButton } from '../../components/EscalateButton';
+import { EmptyState } from '../../components/Illustration';
 import { PageHeader } from '../../components/PageHeader';
 import { colorOf, type Shift } from '../../components/ShiftBar';
 import { relative } from '../../lib/format';
@@ -63,9 +64,9 @@ const shiftLength = (hours: number) =>
 function Escalations({ escalations }: Pick<Props, 'escalations'>) {
   if (!escalations.length)
     return (
-      <Text c="dimmed" size="sm">
-        Nobody has been paged in the last day.
-      </Text>
+      <EmptyState illustration="coffee-break" title="Nobody has been paged">
+        Pages from the last day show up here, with who they reached.
+      </EmptyState>
     );
   return (
     <Card withBorder padding={0} data-xray="escalations">

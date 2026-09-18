@@ -1,20 +1,16 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { View, defer } from 'nestjs-mvc';
-import { IsNull, MoreThan, Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { CurrentUser } from '../auth/current-user.decorator.js';
-import {
-  FollowUp,
-  Incident,
-  SEVERITIES,
-  User,
-} from '../database/entities/index.js';
+import { FollowUp, Incident, User } from '../database/entities/index.js';
 import { followUp, incidentRow } from '../incidents/serializers.js';
 import {
   onVisibleIncident,
   visibleWhere,
 } from '../incidents/incidents.service.js';
 import { OnCallService } from '../oncall/oncall.service.js';
+import { InsightsService, RANGES } from './insights.service.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -26,11 +22,15 @@ export class DashboardController {
     private readonly incidents: Repository<Incident>,
     @InjectRepository(FollowUp)
     private readonly followUps: Repository<FollowUp>,
+    private readonly insights: InsightsService,
   ) {}
 
   @Get()
   @View('Dashboard')
-  async index(@CurrentUser() user: User) {
+  async index(@CurrentUser() user: User, @Query('days') daysQuery?: string) {
+    const days = RANGES.find((d) => String(d) === daysQuery) ?? 30;
+    const since = new Date(Date.now() - days * DAY);
+    const load = () => this.insights.load(user, days);
     return {
       active: (
         await this.incidents.find({
@@ -51,32 +51,24 @@ export class DashboardController {
           take: 5,
         })
       ).map(followUp),
-      // The numbers need a scan over the last 30 days, so the page paints
-      // first and they arrive in a follow-up request.
-      stats: defer(() => this.stats()),
-    };
-  }
-
-  private async stats() {
-    const recent = await this.incidents.find({
-      where: { declaredAt: MoreThan(new Date(Date.now() - 30 * DAY)) },
-    });
-    const resolved = recent.filter((incident) => incident.resolvedAt);
-    const minutes = resolved.map(
-      (i) => (i.resolvedAt!.getTime() - i.declaredAt.getTime()) / 60000,
-    );
-    return {
-      total: recent.length,
-      mttrMinutes: minutes.length
-        ? Math.round(minutes.reduce((a, b) => a + b, 0) / minutes.length)
-        : null,
-      bySeverity: Object.fromEntries(
-        SEVERITIES.map((s) => [
-          s,
-          recent.filter((i) => i.severity === s).length,
-        ]),
+      // How it's going, over a period the page picks. Four blocks, each a
+      // deferred prop in its own group: the page paints straight away, and
+      // each block arrives in its own request as soon as its queries are done.
+      days,
+      ranges: RANGES,
+      summary: defer(
+        async () => this.insights.summary(await load(), user),
+        'summary',
       ),
-      openFollowUps: await this.followUps.countBy({ completedAt: IsNull() }),
+      weekly: defer(
+        async () => this.insights.weekly(await load(), since),
+        'weekly',
+      ),
+      breakdown: defer(
+        async () => this.insights.breakdown(await load()),
+        'breakdown',
+      ),
+      people: defer(async () => this.insights.people(await load()), 'people'),
     };
   }
 }

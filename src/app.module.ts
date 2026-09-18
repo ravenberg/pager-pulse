@@ -6,11 +6,10 @@ import {
 import { MvcModule } from 'nestjs-mvc';
 import { AlertsModule } from './alerts/alerts.module.js';
 import { AuthModule } from './auth/auth.module.js';
-import { DashboardController } from './dashboard/dashboard.controller.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import type { User } from './database/entities/index.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
-import { InsightsModule } from './insights/insights.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
@@ -40,7 +39,7 @@ function signingKeys() {
     IncidentsModule,
     AlertsModule,
     PostMortemsModule,
-    InsightsModule,
+    DashboardModule,
     OnCallModule,
     MvcModule.forRoot({
       template,
@@ -72,7 +71,6 @@ function signingKeys() {
     // After MvcModule: its interceptor has to see props before they resolve.
     XrayModule,
   ],
-  controllers: [DashboardController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

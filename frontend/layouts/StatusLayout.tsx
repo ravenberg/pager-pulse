@@ -18,7 +18,7 @@ export function StatusLayout({ children }: { children: ReactNode }) {
               c="inherit"
             >
               <Group gap="xs">
-                <IconFlame size={28} color="var(--mantine-color-red-6)" />
+                <IconFlame size={28} color="var(--mantine-color-indigo-6)" />
                 <Text fw={700} size="xl">
                   PagerPulse status
                 </Text>

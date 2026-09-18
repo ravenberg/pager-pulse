@@ -1,25 +1,27 @@
 import {
   Anchor,
   Avatar,
-  Box,
   Card,
   Group,
   SimpleGrid,
-  Skeleton,
   Stack,
   Text,
-  ThemeIcon,
   Title,
 } from '@mantine/core';
-import { IconCircleCheck, IconPhoneCall } from '@tabler/icons-react';
-import { Deferred, Link, usePage } from 'nestjs-mvc/react';
+import { IconPhoneCall } from '@tabler/icons-react';
+import { Link, usePage } from 'nestjs-mvc/react';
 import { SeverityBadge, StatusBadge } from '../components/Badges';
+import { EmptyState } from '../components/Illustration';
+import {
+  InsightsSection,
+  type InsightsProps,
+} from '../components/InsightsSection';
 import { PageHeader } from '../components/PageHeader';
-import { duration, relative } from '../lib/format';
+import { relative } from '../lib/format';
 import { appLayout } from '../layouts/AppLayout';
 import type { FollowUpRow, IncidentRow, Person, SharedProps } from '../types';
 
-interface Props {
+interface Props extends InsightsProps {
   active: IncidentRow[];
   onCall: {
     id: number;
@@ -27,32 +29,13 @@ interface Props {
     current: { user: Person | null; endsAt: string } | null;
   }[];
   myFollowUps: FollowUpRow[];
-  stats?: {
-    total: number;
-    mttrMinutes: number | null;
-    bySeverity: Record<string, number>;
-    openFollowUps: number;
-  };
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card withBorder padding="md">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-        {label}
-      </Text>
-      <Text fz={28} fw={700}>
-        {value}
-      </Text>
-    </Card>
-  );
 }
 
 export default function Dashboard({
   active,
   onCall,
   myFollowUps,
-  stats,
+  ...insights
 }: Props) {
   const { props } = usePage<SharedProps>();
   const firstName = props.auth.user?.name.split(' ')[0];
@@ -63,42 +46,6 @@ export default function Dashboard({
         title={`Hi ${firstName}`}
         description="What is on fire, who is holding the pager, and what is left to do."
       />
-
-      {/* data-xray: what X-ray outlines for a prop. */}
-      <Box data-xray="stats">
-        <Deferred
-          data="stats"
-          fallback={
-            <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} h={86} radius="md" />
-              ))}
-            </SimpleGrid>
-          }
-        >
-          {stats && (
-            <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
-              <Stat label="Incidents · 30 days" value={stats.total} />
-              <Stat
-                label="Critical · 30 days"
-                value={stats.bySeverity.critical ?? 0}
-              />
-              <Stat
-                label="Mean time to resolve"
-                value={
-                  stats.mttrMinutes === null
-                    ? '—'
-                    : duration(
-                        new Date(0).toISOString(),
-                        new Date(stats.mttrMinutes * 60000).toISOString(),
-                      )
-                }
-              />
-              <Stat label="Open follow-ups" value={stats.openFollowUps} />
-            </SimpleGrid>
-          )}
-        </Deferred>
-      </Box>
 
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
         <Card
@@ -111,12 +58,12 @@ export default function Dashboard({
             Active incidents
           </Title>
           {active.length === 0 ? (
-            <Group>
-              <ThemeIcon color="green" variant="light" radius="xl">
-                <IconCircleCheck size={18} />
-              </ThemeIcon>
-              <Text c="dimmed">All quiet. Nothing is on fire.</Text>
-            </Group>
+            <EmptyState
+              illustration="relaxing-at-home"
+              title="All quiet. Nothing is on fire."
+            >
+              When something breaks, declare an incident and it shows up here.
+            </EmptyState>
           ) : (
             <Stack gap="sm">
               {active.map((incident) => (
@@ -168,7 +115,7 @@ export default function Dashboard({
               )}
               {onCall.map((schedule) => (
                 <Group key={schedule.id} wrap="nowrap">
-                  <Avatar color="red" radius="xl">
+                  <Avatar color="gray" radius="xl">
                     <IconPhoneCall size={18} />
                   </Avatar>
                   <div>
@@ -219,6 +166,8 @@ export default function Dashboard({
           </Card>
         </Stack>
       </SimpleGrid>
+
+      <InsightsSection {...insights} />
     </>
   );
 }

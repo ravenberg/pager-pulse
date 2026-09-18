@@ -254,8 +254,8 @@ export default function Edit({
           <Group gap="xs">
             {incident.isPrivate && (
               <Badge
-                color="grape"
-                variant="light"
+                color="gray"
+                variant="outline"
                 leftSection={<IconLock size={12} />}
               >
                 Private

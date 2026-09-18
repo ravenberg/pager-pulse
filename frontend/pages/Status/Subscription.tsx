@@ -1,5 +1,6 @@
 import { Anchor, Button, Card, Stack, Text, Title } from '@mantine/core';
 import { Head, Link, router } from 'nestjs-mvc/react';
+import { Illustration } from '../../components/Illustration';
 import { statusLayout } from '../../layouts/StatusLayout';
 
 type State = 'confirmed' | 'already' | 'expired' | 'invalid' | 'unsubscribe';
@@ -51,6 +52,9 @@ export default function Subscription({
     <Card withBorder padding="xl" radius="lg" maw={520} mx="auto">
       <Head title={`${copy.title} · PagerPulse status`} />
       <Stack gap="sm">
+        {(state === 'confirmed' || state === 'already') && (
+          <Illustration name="mail-sent" width={180} />
+        )}
         <Title order={3}>{copy.title}</Title>
         <Text>{copy.body(email)}</Text>
         {state === 'unsubscribe' && action && (

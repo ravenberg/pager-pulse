@@ -68,7 +68,7 @@ export default function Login() {
       <Alert
         mt="lg"
         variant="light"
-        color="blue"
+        color="gray"
         icon={<IconInfoCircle />}
         title="Demo accounts"
       >

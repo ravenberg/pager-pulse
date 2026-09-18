@@ -16,7 +16,6 @@ import {
   IconAlertTriangle,
   IconBellRinging,
   IconBolt,
-  IconChartBar,
   IconChecklist,
   IconExternalLink,
   IconFlame,
@@ -40,7 +39,6 @@ const NAV = [
   { href: '/alerts', label: 'Alerts', icon: IconBellRinging },
   { href: '/follow-ups', label: 'Follow-ups', icon: IconChecklist },
   { href: '/on-call', label: 'On-call', icon: IconPhoneCall },
-  { href: '/insights', label: 'Insights', icon: IconChartBar },
 ];
 
 const initials = (name: string) =>
@@ -75,7 +73,7 @@ function Shell({ children }: { children: ReactNode }) {
               hiddenFrom="sm"
               size="sm"
             />
-            <IconFlame size={26} color="var(--mantine-color-red-6)" />
+            <IconFlame size={26} color="var(--mantine-color-indigo-6)" />
             <Text fw={700} size="lg">
               PagerPulse
             </Text>
@@ -96,7 +94,7 @@ function Shell({ children }: { children: ReactNode }) {
               <Menu position="bottom-end" width={220}>
                 <Menu.Target>
                   <UnstyledButton aria-label="Account">
-                    <Avatar color="red" radius="xl">
+                    <Avatar color="gray" radius="xl">
                       {initials(user.name)}
                     </Avatar>
                   </UnstyledButton>
@@ -147,7 +145,8 @@ function Shell({ children }: { children: ReactNode }) {
                 badges[item.href] ? (
                   <Badge
                     size="sm"
-                    color="red"
+                    variant="light"
+                    color="gray"
                     circle={(badges[item.href] ?? 0) < 10}
                   >
                     {badges[item.href]}

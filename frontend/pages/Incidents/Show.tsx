@@ -42,7 +42,7 @@ import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
 import { EscalateButton } from '../../components/EscalateButton';
 import { FollowUpItem } from '../../components/FollowUpItem';
 import { capitalize, dateTime, duration, relative } from '../../lib/format';
-import { STATUS_COLOR } from '../../lib/theme';
+import { BRAND, STATUS_COLOR } from '../../lib/theme';
 import { appLayout } from '../../layouts/AppLayout';
 import type {
   AlertRow,
@@ -145,8 +145,9 @@ function Lifecycle({
     status === 'resolved'
       ? STATUSES.length + (postMortem ? POST_INCIDENT_STEP[postMortem] : 0)
       : STATUSES.indexOf(status);
-  const color = (index: number) =>
-    index >= STATUSES.length ? 'violet' : STATUS_COLOR[STATUSES[index]];
+  // Only the current step carries colour, as a dot: the rest is grey.
+  const dot = (index: number) =>
+    index >= STATUSES.length ? BRAND : STATUS_COLOR[STATUSES[index]];
 
   return (
     <Paper withBorder px="xs" py={6} radius="md">
@@ -159,10 +160,11 @@ function Lifecycle({
               radius="sm"
               tt="none"
               fw={index === current ? 700 : 500}
-              color={index <= current ? color(index) : 'gray'}
+              color={index === current ? dot(index) : 'gray'}
+              c={index > current ? 'dimmed' : undefined}
               variant={
                 index === current
-                  ? 'filled'
+                  ? 'dot'
                   : index < current
                     ? 'light'
                     : 'transparent'
@@ -421,7 +423,7 @@ function TimelineView({ entries }: { entries: Entry[] }) {
                 size={28}
                 radius="xl"
                 variant={entry.kind === 'update' ? 'filled' : 'light'}
-                color={entry.kind === 'declared' ? 'red' : 'gray'}
+                color="gray"
               >
                 <Icon size={15} />
               </ThemeIcon>
@@ -571,8 +573,8 @@ export default function Show({
             <Badge
               size="lg"
               radius="sm"
-              color="grape"
-              variant="light"
+              color="gray"
+              variant="outline"
               leftSection={<IconLock size={14} />}
             >
               Private

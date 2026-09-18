@@ -20,6 +20,7 @@ import {
 import { InfiniteScroll, Link, router, usePage } from 'nestjs-mvc/react';
 import { useState } from 'react';
 import { SeverityBadge, StatusBadge } from '../../components/Badges';
+import { EmptyState } from '../../components/Illustration';
 import { PageHeader } from '../../components/PageHeader';
 import { duration, relative } from '../../lib/format';
 import { appLayout } from '../../layouts/AppLayout';
@@ -198,9 +199,9 @@ export default function Index({ filters, counts, incidents }: Props) {
             </Table.Tbody>
           </Table>
           {incidents.data.length === 0 && (
-            <Text c="dimmed" ta="center" p="xl">
-              No incidents match these filters.
-            </Text>
+            <EmptyState illustration="the-void" title="No incidents match">
+              Try another state, severity or search.
+            </EmptyState>
           )}
         </InfiniteScroll>
       </Card>

@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  Anchor,
   Badge,
   Button,
   Code,
@@ -18,7 +17,6 @@ import { IconBolt, IconTrash, IconX } from '@tabler/icons-react';
 import { router, usePage } from 'nestjs-mvc/react';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { type Evidence, ordered, pageFeatures, requestsOnPage } from './detect';
-import { KITCHEN_SINK } from './features';
 import {
   installRequestLog,
   type RequestEntry,
@@ -357,7 +355,6 @@ export function XrayOverlay() {
           onClick={() => setOpened(true)}
           leftSection={<IconBolt size={16} />}
           variant="filled"
-          color="dark"
           radius="xl"
           size="sm"
           style={{
@@ -439,12 +436,7 @@ export function XrayOverlay() {
           </ScrollArea.Autosize>
         </Tabs>
 
-        <Group justify="space-between" mt="sm">
-          <Group gap="md">
-            <Anchor href={KITCHEN_SINK} target="_blank" size="xs">
-              Kitchen sink
-            </Anchor>
-          </Group>
+        <Group justify="flex-end" mt="sm">
           <Button
             size="compact-xs"
             variant="subtle"

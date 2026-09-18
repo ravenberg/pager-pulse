@@ -21,6 +21,7 @@ import { Link, router, usePoll } from 'nestjs-mvc/react';
 import { useRef } from 'react';
 import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
 import { EscalateButton } from '../../components/EscalateButton';
+import { EmptyState } from '../../components/Illustration';
 import { PageHeader } from '../../components/PageHeader';
 import { relative } from '../../lib/format';
 import { appLayout } from '../../layouts/AppLayout';
@@ -45,7 +46,8 @@ function Count({
 }: {
   label: string;
   value: number;
-  color: string;
+  /** Only for a number that should worry someone. */
+  color?: string;
 }) {
   return (
     <Card withBorder padding="md">
@@ -112,12 +114,8 @@ export default function Index({
 
       <SimpleGrid cols={{ base: 3 }} mb="lg" data-xray="counts">
         <Count label="Firing" value={counts.firing} color="red" />
-        <Count
-          label="Acknowledged"
-          value={counts.acknowledged}
-          color="orange"
-        />
-        <Count label="Resolved · 24h" value={counts.resolved} color="green" />
+        <Count label="Acknowledged" value={counts.acknowledged} />
+        <Count label="Resolved · 24h" value={counts.resolved} />
       </SimpleGrid>
 
       <Card withBorder padding={0} data-xray="alerts">
@@ -214,7 +212,7 @@ export default function Index({
                         <Tooltip label="Acknowledge">
                           <ActionIcon
                             variant="subtle"
-                            color="orange"
+                            color="gray"
                             aria-label="Acknowledge"
                             onClick={() => act(alert, 'acknowledge')}
                           >
@@ -226,7 +224,7 @@ export default function Index({
                         <Tooltip label="Resolve">
                           <ActionIcon
                             variant="subtle"
-                            color="green"
+                            color="gray"
                             aria-label="Resolve"
                             onClick={() => act(alert, 'resolve')}
                           >
@@ -242,18 +240,19 @@ export default function Index({
           </Table.Tbody>
         </Table>
         {alerts.length === 0 && (
-          <Text c="dimmed" ta="center" p="xl">
-            No alerts yet.{' '}
-            {canManage && (
+          <EmptyState illustration="server-status" title="No alerts yet">
+            {canManage ? (
               <>
-                Connect a tool under{' '}
-                <Anchor component={Link} href="/alerts/sources">
+                Connect a monitoring tool under{' '}
+                <Anchor component={Link} href="/alerts/sources" size="sm">
                   Sources
-                </Anchor>
-                .
+                </Anchor>{' '}
+                and its alerts arrive here.
               </>
+            ) : (
+              'Alerts from the monitoring tools arrive here.'
             )}
-          </Text>
+          </EmptyState>
         )}
       </Card>
       <Text size="xs" c="dimmed" mt="xs">

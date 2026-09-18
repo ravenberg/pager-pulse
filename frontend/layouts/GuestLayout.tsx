@@ -9,7 +9,7 @@ export function GuestLayout({ children }: { children: ReactNode }) {
       <Center mih="100vh" bg="var(--mantine-color-gray-light)">
         <Container size={420} w="100%">
           <Group justify="center" gap="xs" mb="lg">
-            <IconFlame size={32} color="var(--mantine-color-red-6)" />
+            <IconFlame size={32} color="var(--mantine-color-indigo-6)" />
             <Text fw={700} size="xl">
               PagerPulse
             </Text>

@@ -223,6 +223,3 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     color: 'orange',
   },
 };
-
-export const KITCHEN_SINK =
-  'https://github.com/ravenberg/nestjs-mvc/tree/main/apps/kitchen-sink';

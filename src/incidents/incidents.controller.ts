@@ -173,11 +173,14 @@ export class IncidentsController {
       });
     }
     if (filters.search) {
-      const id = Number(filters.search.replace(/^INC-/i, ''));
-      query.andWhere('(incident.title LIKE :term OR incident.id = :id)', {
-        term: `%${filters.search}%`,
-        id,
-      });
+      // "INC-12" or "12" also finds by number; other text only by title.
+      const id = Number(filters.search.trim().replace(/^INC-/i, ''));
+      query.andWhere(
+        Number.isInteger(id)
+          ? '(incident.title LIKE :term OR incident.id = :id)'
+          : 'incident.title LIKE :term',
+        { term: `%${filters.search}%`, id },
+      );
     }
     return query;
   }

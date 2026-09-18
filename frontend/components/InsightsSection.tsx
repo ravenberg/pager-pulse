@@ -13,14 +13,12 @@ import {
 import { IconChartBar, IconTable } from '@tabler/icons-react';
 import { Deferred, router } from 'nestjs-mvc/react';
 import { type ReactNode, useState } from 'react';
-import { BarList, ColumnChart, LineChart } from '../../components/Charts';
-import { PageHeader } from '../../components/PageHeader';
-import { capitalize } from '../../lib/format';
-import { appLayout } from '../../layouts/AppLayout';
+import { BarList, ColumnChart, LineChart } from './Charts';
+import { capitalize } from '../lib/format';
 
 type Row = { label: string; count: number };
 
-interface Props {
+export interface InsightsProps {
   days: number;
   ranges: number[];
   // Deferred: each arrives in its own request after the page paints.
@@ -125,35 +123,39 @@ function ChartCard({
   );
 }
 
-export default function Index({
+/**
+ * How it's going: numbers and charts over a period. Each block is a deferred
+ * prop; changing the period reloads just these props, asked for by name.
+ */
+export function InsightsSection({
   days,
   ranges,
   summary,
   weekly,
   breakdown,
   people,
-}: Props) {
-  // A new range is a new visit: the deferred blocks are fetched again.
+}: InsightsProps) {
   const pick = (value: string) =>
-    router.get(
-      '/insights',
-      { days: value },
-      { preserveState: true, preserveScroll: true },
-    );
+    router.reload({
+      data: { days: value },
+      only: ['days', 'summary', 'weekly', 'breakdown', 'people'],
+    });
 
   return (
     <>
-      <PageHeader
-        title="Insights"
-        description="How incidents have been going, and where the load falls."
-        actions={
-          <SegmentedControl
-            value={String(days)}
-            onChange={pick}
-            data={ranges.map((d) => ({ value: String(d), label: `${d} days` }))}
-          />
-        }
-      />
+      <Group justify="space-between" mt="xl" mb="md">
+        <div>
+          <Title order={4}>How it's going</Title>
+          <Text size="sm" c="dimmed">
+            Incidents you can see, over the last {days} days.
+          </Text>
+        </div>
+        <SegmentedControl
+          value={String(days)}
+          onChange={pick}
+          data={ranges.map((d) => ({ value: String(d), label: `${d} days` }))}
+        />
+      </Group>
 
       <Deferred
         data="summary"
@@ -275,5 +277,3 @@ export default function Index({
     </>
   );
 }
-
-Index.layout = appLayout;

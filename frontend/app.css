@@ -6,14 +6,14 @@ body {
   background: var(--mantine-color-body);
 }
 
-/* A row the alerts poll just brought in. */
+/* A row the alerts poll just brought in: new, not necessarily alarming. */
 .alert-arrived {
   animation: alert-arrived 2.5s ease-out;
 }
 
 @keyframes alert-arrived {
   from {
-    background: var(--mantine-color-red-light);
+    background: var(--mantine-color-indigo-light);
   }
   to {
     background: transparent;
@@ -47,4 +47,18 @@ body {
 }
 [data-mantine-color-scheme='dark'] {
   --chart-series: #339af0;
+}
+
+/* unDraw illustrations: their colours, mapped onto the theme. */
+:root {
+  --illo-accent: var(--mantine-color-indigo-5);
+  --illo-ink: #3f3d56;
+  --illo-soft: #e6e6e6;
+  --illo-paper: #ffffff;
+}
+[data-mantine-color-scheme='dark'] {
+  --illo-accent: var(--mantine-color-indigo-4);
+  --illo-ink: #c9c9d6;
+  --illo-soft: #3a3b44;
+  --illo-paper: #2e2f36;
 }
