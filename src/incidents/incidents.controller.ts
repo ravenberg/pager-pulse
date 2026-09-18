@@ -297,6 +297,14 @@ export class IncidentsController {
           uploadedBy: person(a.uploadedBy),
           createdAt: a.createdAt.toISOString(),
         })),
+      // Near the bottom of the page: <WhenVisible> asks for it when it
+      // scrolls into view, so most visits never compute it.
+      related: optional(async () =>
+        (await this.incidents.relatedTo(incident, user)).map((related) => ({
+          ...incidentRow(related),
+          sameTitle: related.title === incident.title,
+        })),
+      ),
       // For the escalate dialog, when it opens.
       escalationPaths: optional(async () =>
         (await this.paths.find({ order: { name: 'ASC' } })).map(

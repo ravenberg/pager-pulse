@@ -36,10 +36,21 @@ import {
   IconUserStar,
   IconWorld,
 } from '@tabler/icons-react';
-import { Head, Link, router, useForm, usePoll } from 'nestjs-mvc/react';
+import {
+  Head,
+  Link,
+  WhenVisible,
+  router,
+  useForm,
+  usePoll,
+} from 'nestjs-mvc/react';
 import { Fragment, type FormEvent, type ReactNode } from 'react';
 import { type AttachmentRow, Attachments } from '../../components/Attachments';
-import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
+import {
+  AlertStatusBadge,
+  SeverityBadge,
+  StatusBadge,
+} from '../../components/Badges';
 import { EscalateButton } from '../../components/EscalateButton';
 import { FollowUpItem } from '../../components/FollowUpItem';
 import { capitalize, dateTime, duration, relative } from '../../lib/format';
@@ -89,6 +100,8 @@ interface Props {
   alerts?: AlertRow[];
   users: Person[];
   attachments: AttachmentRow[];
+  /** Loaded when the "Seen this before?" card scrolls into view. */
+  related?: (IncidentRow & { sameTitle: boolean })[];
   /** Loaded when the escalate dialog opens. */
   escalationPaths?: { id: number; name: string }[];
   canRespond: boolean;
@@ -485,6 +498,66 @@ function Alerts({ alerts }: { alerts: AlertRow[] }) {
   );
 }
 
+/**
+ * Past incidents with the same title or on the same services. At the bottom
+ * of the page, so it is only asked for when it scrolls into view.
+ */
+function Related({ related }: { related: Props['related'] }) {
+  return (
+    <Card withBorder padding="lg" data-xray="related">
+      <Text fw={600} mb={4}>
+        Seen this before?
+      </Text>
+      <Text size="sm" c="dimmed" mb="md">
+        Earlier incidents with the same title or on the same services.
+      </Text>
+      <WhenVisible data="related" buffer={200} fallback={<Loading />}>
+        {related && related.length === 0 ? (
+          <Empty>Nothing like it so far.</Empty>
+        ) : (
+          <Stack gap={0}>
+            {related?.map((other, index) => (
+              <Fragment key={other.id}>
+                {index > 0 && <Divider />}
+                <UnstyledButton
+                  component={Link}
+                  href={`/incidents/${other.id}`}
+                  prefetch="hover"
+                  py="sm"
+                >
+                  <Group justify="space-between" wrap="nowrap" gap="sm">
+                    <div style={{ minWidth: 0 }}>
+                      <Text size="sm" fw={500} truncate>
+                        <Text span inherit c="dimmed" fw={400}>
+                          {other.reference}
+                        </Text>{' '}
+                        {other.title}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {relative(other.declaredAt)}
+                        {other.resolvedAt &&
+                          ` · resolved in ${duration(other.declaredAt, other.resolvedAt)}`}
+                        {other.lead && ` · led by ${other.lead.name}`}
+                        {!other.sameTitle &&
+                          other.services.length > 0 &&
+                          ` · ${other.services.join(', ')}`}
+                      </Text>
+                    </div>
+                    <Group gap={6} wrap="nowrap">
+                      <SeverityBadge severity={other.severity} size="sm" />
+                      <StatusBadge status={other.status} size="sm" />
+                    </Group>
+                  </Group>
+                </UnstyledButton>
+              </Fragment>
+            ))}
+          </Stack>
+        )}
+      </WhenVisible>
+    </Card>
+  );
+}
+
 export default function Show({
   tab,
   incident,
@@ -495,6 +568,7 @@ export default function Show({
   alerts,
   users,
   attachments,
+  related,
   escalationPaths,
   canRespond,
 }: Props) {
@@ -659,6 +733,7 @@ export default function Show({
                 </Tabs.Panel>
               </Tabs>
             </Card>
+            <Related related={related} />
           </Stack>
         </Grid.Col>
 

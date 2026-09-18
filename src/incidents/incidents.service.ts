@@ -155,6 +155,35 @@ export class IncidentsService {
     });
   }
 
+  /**
+   * Incidents like this one, for "have we seen this before?": the same title
+   * first, then others on the same services; most recent first.
+   */
+  async relatedTo(incident: Incident, viewer: User, limit = 5) {
+    const serviceIds = (incident.services ?? []).map((service) => service.id);
+    const query = this.incidents
+      .createQueryBuilder('incident')
+      .leftJoinAndSelect('incident.lead', 'lead')
+      .leftJoinAndSelect('incident.services', 'service')
+      .where('incident.id != :id', { id: incident.id })
+      .andWhere(
+        new Brackets((match) => {
+          match.where('incident.title = :title', { title: incident.title });
+          if (serviceIds.length)
+            match.orWhere(
+              'incident.id IN (SELECT incidentId FROM incident_services_service WHERE serviceId IN (:...serviceIds))',
+              { serviceIds },
+            );
+        }),
+      )
+      .orderBy('incident.declaredAt', 'DESC');
+    restrictVisible(query, viewer);
+    // take() with joined services pages by incident, not by row.
+    const candidates = await query.take(limit * 4).getMany();
+    const rank = (other: Incident) => (other.title === incident.title ? 0 : 1);
+    return candidates.sort((a, b) => rank(a) - rank(b)).slice(0, limit);
+  }
+
   countOpen(viewer: User) {
     return this.incidents.countBy(
       visibleWhere(viewer, { status: Not('resolved') }),

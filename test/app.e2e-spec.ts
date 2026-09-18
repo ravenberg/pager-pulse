@@ -109,6 +109,32 @@ describe('pages', () => {
     expect(block.props.active).toBeUndefined();
   });
 
+  it('leaves similar incidents out until the card asks for them (WhenVisible)', async () => {
+    const [incident] = await db.query(
+      `SELECT id, title FROM incident WHERE title IN
+         (SELECT title FROM incident GROUP BY title HAVING COUNT(*) > 1)
+       ORDER BY id DESC LIMIT 1`,
+    );
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+
+    const page = (await ada.visit(`/incidents/${incident.id}`)).body;
+    expect(page.props.related).toBeUndefined();
+
+    const related = (
+      await ada.visit(`/incidents/${incident.id}`, {
+        'X-Inertia-Partial-Component': 'Incidents/Show',
+        'X-Inertia-Partial-Data': 'related',
+      })
+    ).body.props.related;
+    expect(related.length).toBeGreaterThan(0);
+    expect(related[0]).toMatchObject({
+      title: incident.title,
+      sameTitle: true,
+    });
+    expect(related.map((r: { id: number }) => r.id)).not.toContain(incident.id);
+  });
+
   it('sends a once() list only until the browser says it has it', async () => {
     const ada = browser();
     await ada.login('ada@pagerpulse.dev');
