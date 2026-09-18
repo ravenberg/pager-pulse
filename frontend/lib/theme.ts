@@ -1,5 +1,5 @@
 import { createTheme } from '@mantine/core';
-import type { IncidentStatus, Severity } from '../types';
+import type { AlertStatus, IncidentStatus, Severity } from '../types';
 
 export const theme = createTheme({
   primaryColor: 'red',
@@ -19,5 +19,11 @@ export const STATUS_COLOR: Record<IncidentStatus, string> = {
   investigating: 'red',
   identified: 'orange',
   monitoring: 'blue',
+  resolved: 'green',
+};
+
+export const ALERT_STATUS_COLOR: Record<AlertStatus, string> = {
+  firing: 'red',
+  acknowledged: 'orange',
   resolved: 'green',
 };

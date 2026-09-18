@@ -4,6 +4,7 @@ import {
   type NestModule,
 } from '@nestjs/common';
 import { MvcModule } from 'nestjs-mvc';
+import { AlertsModule } from './alerts/alerts.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { DashboardController } from './dashboard/dashboard.controller.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -20,6 +21,7 @@ import { XrayModule } from './xray/xray.module.js';
     DatabaseModule,
     AuthModule,
     IncidentsModule,
+    AlertsModule,
     OnCallModule,
     MvcModule.forRoot({
       template,

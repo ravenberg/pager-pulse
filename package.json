@@ -19,7 +19,8 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p frontend/tsconfig.json"
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p frontend/tsconfig.json",
+    "alerts:demo": "node scripts/fire-alerts.mjs"
   },
   "dependencies": {
     "@inertiajs/react": "^3.7.1",

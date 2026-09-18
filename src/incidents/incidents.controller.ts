@@ -16,6 +16,7 @@ import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Responder } from '../auth/roles.decorator.js';
 import { paginate } from '../common/pagination.js';
 import {
+  Alert,
   Incident,
   SEVERITIES,
   Service,
@@ -27,6 +28,7 @@ import {
   FollowUpSchema,
   UpdateSchema,
 } from './incidents.schemas.js';
+import { alertRow } from '../alerts/serializers.js';
 import { IncidentsService } from './incidents.service.js';
 import {
   followUp,
@@ -47,6 +49,7 @@ export class IncidentsController {
     private readonly repository: Repository<Incident>,
     @InjectRepository(Service) private readonly services: Repository<Service>,
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
   ) {}
 
   @Get()
@@ -131,6 +134,14 @@ export class IncidentsController {
         (await this.incidents.timelineOf(incident)).map(timelineEntry),
       followUps: async () =>
         (await this.incidents.followUpsOf(incident)).map(followUp),
+      alerts: async () =>
+        (
+          await this.alerts.find({
+            where: { incident: { id: incident.id } },
+            relations: { source: true },
+            order: { firstSeenAt: 'DESC' },
+          })
+        ).map(alertRow),
       users: async () =>
         (await this.users.find({ order: { name: 'ASC' } })).map(person),
       canRespond: canRespond(user),

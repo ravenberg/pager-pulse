@@ -1,8 +1,11 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, Not } from 'typeorm';
+import { newToken } from '../alerts/alerts.service.js';
 import { hashPassword } from '../auth/passwords.js';
 import {
+  Alert,
+  AlertSource,
   FollowUp,
   Incident,
   type IncidentStatus,
@@ -56,7 +59,8 @@ const TITLES = [
 /**
  * Fills an empty database with a team, services, a history of incidents and
  * two on-call rotations, so the demo has something to show on first start.
- * Everyone's password is `password`.
+ * Everyone's password is `password`. Alert sources are seeded on their own,
+ * so a database from before alerts existed gets them too.
  */
 @Injectable()
 export class DatabaseSeeder implements OnApplicationBootstrap {
@@ -65,7 +69,12 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
   constructor(@InjectDataSource() private readonly db: DataSource) {}
 
   async onApplicationBootstrap() {
-    if ((await this.db.getRepository(User).count()) > 0) return;
+    if ((await this.db.getRepository(User).count()) === 0) await this.seed();
+    if ((await this.db.getRepository(AlertSource).count()) === 0)
+      await this.seedAlerts();
+  }
+
+  private async seed() {
     this.logger.log('Seeding the demo database…');
 
     const passwordHash = await hashPassword('password');
@@ -225,5 +234,106 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     this.logger.log(
       'Seeded. Log in as ada@pagerpulse.dev with password "password".',
     );
+  }
+
+  private async seedAlerts() {
+    const services = await this.db.getRepository(Service).find();
+    const service = (name: string) =>
+      services.find((s) => s.name === name) ?? null;
+    const [prometheus, uptime, stripe] = await this.db
+      .getRepository(AlertSource)
+      .save(
+        [
+          ['Prometheus', 'API'],
+          ['Uptime checks', 'Dashboard'],
+          ['Stripe', 'Payments'],
+        ].map(([name, serviceName]) => ({
+          name,
+          service: service(serviceName),
+          token: newToken(),
+        })),
+      );
+
+    const incidents = this.db.getRepository(Incident);
+    const openIncident = (title: string) =>
+      incidents.findOne({
+        where: { title, status: Not('resolved') },
+        order: { declaredAt: 'DESC' },
+      });
+    const grace = await this.db
+      .getRepository(User)
+      .findOneBy({ email: 'grace@pagerpulse.dev' });
+
+    const now = Date.now();
+    const ago = (minutes: number) => new Date(now - minutes * 60 * 1000);
+    const alerts: Partial<Alert>[] = [
+      {
+        source: prometheus,
+        title: 'Replica lag above 30s on db-2',
+        severity: 'major',
+        dedupKey: 'replica-lag-db-2',
+        labels: { host: 'db-2', region: 'eu-west-1' },
+        occurrences: 2,
+        firstSeenAt: ago(3),
+        lastSeenAt: ago(1),
+      },
+      {
+        source: prometheus,
+        title: 'API p99 latency above 2s',
+        description: 'p99 of /v1/* has been above 2s for 10 minutes.',
+        severity: 'critical',
+        dedupKey: 'api-latency-p99',
+        labels: { service: 'api', region: 'eu-west-1' },
+        occurrences: 7,
+        firstSeenAt: ago(12),
+        lastSeenAt: ago(2),
+      },
+      {
+        source: uptime,
+        title: 'TLS certificate for status.pagerpulse.dev expires in 3 days',
+        severity: 'major',
+        status: 'acknowledged',
+        dedupKey: 'tls-status',
+        incident: await openIncident('Certificate expiry on status subdomain'),
+        acknowledgedBy: grace,
+        firstSeenAt: ago(45),
+        lastSeenAt: ago(40),
+      },
+      {
+        source: prometheus,
+        title: 'Worker memory above 90%',
+        severity: 'minor',
+        status: 'acknowledged',
+        dedupKey: 'worker-memory',
+        labels: { pool: 'workers' },
+        incident: await openIncident('Memory leak in worker pool'),
+        acknowledgedBy: grace,
+        occurrences: 4,
+        firstSeenAt: ago(220),
+        lastSeenAt: ago(30),
+      },
+      {
+        source: stripe,
+        title: 'Card declines above baseline',
+        severity: 'major',
+        status: 'resolved',
+        firstSeenAt: ago(360),
+        lastSeenAt: ago(330),
+        resolvedAt: ago(300),
+      },
+      {
+        source: uptime,
+        title: 'Dashboard login check failed',
+        severity: 'critical',
+        status: 'resolved',
+        firstSeenAt: ago(60 * 26),
+        lastSeenAt: ago(60 * 26 - 4),
+        resolvedAt: ago(60 * 25),
+      },
+    ];
+    await this.db
+      .getRepository(Alert)
+      .save(alerts.map((alert) => ({ labels: {}, ...alert })));
+    this.logger.log('Seeded alert sources: see /alerts/sources for tokens.');
   }
 }

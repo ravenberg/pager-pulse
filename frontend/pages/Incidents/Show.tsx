@@ -28,11 +28,16 @@ import {
 } from '@tabler/icons-react';
 import { Head, Link, router, useForm, usePoll } from 'nestjs-mvc/react';
 import type { FormEvent } from 'react';
-import { SeverityBadge, StatusBadge } from '../../components/Badges';
+import {
+  AlertStatusBadge,
+  SeverityBadge,
+  StatusBadge,
+} from '../../components/Badges';
 import { FollowUpItem } from '../../components/FollowUpItem';
 import { capitalize, dateTime, duration, relative } from '../../lib/format';
 import { appLayout } from '../../layouts/AppLayout';
 import type {
+  AlertRow,
   FollowUpRow,
   IncidentRow,
   IncidentStatus,
@@ -57,6 +62,7 @@ interface Props {
   };
   timeline: Entry[];
   followUps: FollowUpRow[];
+  alerts: AlertRow[];
   users: Person[];
   canRespond: boolean;
 }
@@ -231,11 +237,12 @@ export default function Show({
   incident,
   timeline,
   followUps,
+  alerts,
   users,
   canRespond,
 }: Props) {
   // Somebody else may be working this incident: refresh just the moving parts.
-  usePoll(10_000, { only: ['incident', 'timeline', 'followUps'] });
+  usePoll(10_000, { only: ['incident', 'timeline', 'followUps', 'alerts'] });
 
   const change = (data: Record<string, string | null>) =>
     router.patch(`/incidents/${incident.id}`, data, {
@@ -433,6 +440,36 @@ export default function Show({
                 )}
               </Stack>
             </Card>
+
+            {alerts.length > 0 && (
+              <Card withBorder padding="lg" data-xray="alerts">
+                <Title order={5} mb="sm">
+                  Alerts
+                </Title>
+                <Stack gap="sm">
+                  {alerts.map((alert) => (
+                    <Group
+                      key={alert.id}
+                      justify="space-between"
+                      wrap="nowrap"
+                      align="flex-start"
+                    >
+                      <div>
+                        <Text size="sm">{alert.title}</Text>
+                        <Text size="xs" c="dimmed">
+                          {alert.source.name} · {relative(alert.firstSeenAt)}
+                          {alert.occurrences > 1 && ` · ×${alert.occurrences}`}
+                        </Text>
+                      </div>
+                      <AlertStatusBadge status={alert.status} size="sm" />
+                    </Group>
+                  ))}
+                  <Anchor component={Link} href="/alerts" size="xs">
+                    All alerts
+                  </Anchor>
+                </Stack>
+              </Card>
+            )}
           </Stack>
         </Grid.Col>
       </Grid>

@@ -34,5 +34,25 @@ export interface SharedProps {
     user: { id: number; name: string; email: string; role: Role } | null;
   };
   openIncidents?: number;
+  /** Null for guests. */
+  openAlerts?: number | null;
   [key: string]: unknown;
+}
+
+export type AlertStatus = 'firing' | 'acknowledged' | 'resolved';
+
+export interface AlertRow {
+  id: number;
+  title: string;
+  description: string;
+  severity: Severity;
+  status: AlertStatus;
+  source: { id: number; name: string };
+  occurrences: number;
+  labels: Record<string, string>;
+  incident: { id: number; reference: string } | null;
+  acknowledgedBy: Person | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  resolvedAt: string | null;
 }

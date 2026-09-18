@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseSeeder } from './database.seeder.js';
 import {
+  Alert,
+  AlertSource,
   FollowUp,
   Incident,
   Schedule,
@@ -13,6 +15,8 @@ import {
 
 const entities = [
   User,
+  AlertSource,
+  Alert,
   Service,
   Incident,
   TimelineEntry,

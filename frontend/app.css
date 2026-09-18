@@ -6,6 +6,20 @@ body {
   background: var(--mantine-color-body);
 }
 
+/* A row the alerts poll just brought in. */
+.alert-arrived {
+  animation: alert-arrived 2.5s ease-out;
+}
+
+@keyframes alert-arrived {
+  from {
+    background: var(--mantine-color-red-light);
+  }
+  to {
+    background: transparent;
+  }
+}
+
 /* X-ray: what renders a prop, while its chip is hovered or it was just reloaded. */
 [data-xray-hit] {
   outline: 2px dashed var(--mantine-color-cyan-5);

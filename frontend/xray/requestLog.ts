@@ -25,8 +25,6 @@ export interface RequestEntry {
   outcome: 'pending' | 'ok' | 'errors' | 'cancelled';
   /** For polls: the interval it settled into. */
   every?: number;
-  /** Same URL and same props: how repeated partial reloads are recognised. */
-  signature?: string;
 }
 
 const MAX = 60;
@@ -58,8 +56,8 @@ export const requestLog = {
   },
 };
 
-/** When each partial-reload signature last ran, to tell a poll from a one-off reload. */
-const lastRun = new Map<string, { at: number; gap: number | null }>();
+/** When each poll last ran, to show its interval. */
+const lastPoll = new Map<string, number>();
 
 function classify(visit: {
   method: string;
@@ -69,29 +67,28 @@ function classify(visit: {
   headers: Record<string, string>;
   url: URL;
   deferredProps?: boolean;
-}): Pick<RequestEntry, 'kind' | 'every' | 'signature'> {
+  poll?: boolean;
+}): Pick<RequestEntry, 'kind' | 'every'> {
   if (visit.method !== 'get') return { kind: 'mutation' };
   if (visit.prefetch) return { kind: 'prefetch' };
   if (visit.deferredProps) return { kind: 'deferred' };
   const headers = Object.keys(visit.headers).map((h) => h.toLowerCase());
   if (headers.includes('x-inertia-infinite-scroll-merge-intent'))
     return { kind: 'scroll' };
+  // usePoll marks its reloads.
+  if (visit.poll) {
+    const key = `${visit.url.pathname}|${visit.only.join()}`;
+    const now = performance.now();
+    const previous = lastPoll.get(key);
+    lastPoll.set(key, now);
+    return {
+      kind: 'poll',
+      every: previous ? Math.round((now - previous) / 1000) : undefined,
+    };
+  }
   if (visit.only.length === 0 && visit.except.length === 0)
     return { kind: 'visit' };
-
-  // The same partial reload at a steady interval is a poll.
-  const signature = `${visit.url.pathname}|${visit.only.join()}|${visit.except.join()}`;
-  const now = performance.now();
-  const previous = lastRun.get(signature);
-  const gap = previous ? now - previous.at : null;
-  lastRun.set(signature, { at: now, gap });
-  const steady =
-    gap !== null &&
-    previous?.gap != null &&
-    Math.abs(gap - previous.gap) < previous.gap * 0.25;
-  return steady
-    ? { kind: 'poll', every: Math.round(gap / 1000), signature }
-    : { kind: 'partial', signature };
+  return { kind: 'partial' };
 }
 
 /** Bytes of the most recent fetch to this URL that started after `since`. */
@@ -131,20 +128,13 @@ export function installRequestLog(initialUrl: string) {
     const visit = event.detail.visit as typeof event.detail.visit & {
       id: string;
       deferredProps?: boolean;
+      poll?: boolean;
     };
     started.set(visit.id, performance.now());
-    const kind = classify(visit);
-    // Once a poll is recognised, the reloads that led up to it were polls too.
-    if (kind.kind === 'poll')
-      entries = entries.map((entry) =>
-        entry.kind === 'partial' && entry.signature === kind.signature
-          ? { ...entry, kind: 'poll', every: kind.every }
-          : entry,
-      );
     add({
       id: visit.id,
       at: Date.now(),
-      ...kind,
+      ...classify(visit),
       method: visit.method,
       url: visit.url.pathname + visit.url.search,
       only: visit.only,

@@ -14,6 +14,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
+  IconBellRinging,
   IconBolt,
   IconChecklist,
   IconExternalLink,
@@ -35,6 +36,7 @@ import { setXray } from '../xray/XrayOverlay';
 const NAV = [
   { href: '/', label: 'Dashboard', icon: IconLayoutDashboard, exact: true },
   { href: '/incidents', label: 'Incidents', icon: IconAlertTriangle },
+  { href: '/alerts', label: 'Alerts', icon: IconBellRinging },
   { href: '/follow-ups', label: 'Follow-ups', icon: IconChecklist },
   { href: '/on-call', label: 'On-call', icon: IconPhoneCall },
   { href: '/showcase', label: 'Showcase', icon: IconStack2 },
@@ -52,6 +54,10 @@ function Shell({ children }: { children: ReactNode }) {
   const [opened, { toggle, close }] = useDisclosure();
   const user = props.auth.user;
   const path = url.split('?')[0];
+  const badges: Record<string, number | null | undefined> = {
+    '/incidents': props.openIncidents,
+    '/alerts': props.openAlerts,
+  };
 
   return (
     <AppShell
@@ -137,9 +143,13 @@ function Shell({ children }: { children: ReactNode }) {
                 item.exact ? path === item.href : path.startsWith(item.href)
               }
               rightSection={
-                item.href === '/incidents' && props.openIncidents ? (
-                  <Badge size="sm" color="red" circle>
-                    {props.openIncidents}
+                badges[item.href] ? (
+                  <Badge
+                    size="sm"
+                    color="red"
+                    circle={(badges[item.href] ?? 0) < 10}
+                  >
+                    {badges[item.href]}
                   </Badge>
                 ) : null
               }

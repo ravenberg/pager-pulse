@@ -127,11 +127,10 @@ export const FEATURES: Record<FeatureKey, Feature> = {
   },
   prepend: {
     title: 'Prepend prop',
-    code: 'prepend(newAlerts)',
+    code: "prepend(feed, { matchOn: 'id' })",
     blurb: 'Like merge, but new items go on top: a feed of newer entries.',
     group: 'Props',
     color: 'blue',
-    planned: 'Phase 1 · alerts inbox',
   },
   'deep-merge': {
     title: 'Deep merge prop',
@@ -180,7 +179,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Pages are CSRF-protected without configuration; webhooks and bearer-token endpoints opt out.',
     group: 'Security',
     color: 'grape',
-    planned: 'Phase 1 · alert webhook',
   },
   'signed-url': {
     title: 'Signed URLs',

@@ -101,11 +101,9 @@ export function pageFeatures(
     const props = [...request.only, ...request.except.map((p) => `−${p}`)];
     add(found, key, {
       label:
-        request.kind === 'poll'
-          ? `every ~${request.every}s: ${props.join(', ')}`
-          : request.kind === 'prefetch' || request.kind === 'cached'
-            ? request.url
-            : props.join(', ') || request.url,
+        request.kind === 'prefetch' || request.kind === 'cached'
+          ? request.url
+          : props.join(', ') || request.url,
       prop: request.only.length === 1 ? request.only[0] : undefined,
     });
   }
