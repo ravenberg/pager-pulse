@@ -8,6 +8,9 @@ whoever is on call, write post-mortems, keep a public status page. It's here so
 you can see what building with nestjs-mvc looks like beyond a hello world.
 Click around to see how it feels, then open the code to see how it's done.
 
+**Live demo: https://pager-pulse.ravenberg.dev** (log in as `ada@pagerpulse.dev`
+with password `password`; it starts over every night).
+
 ## Try it
 
 ```sh
@@ -107,7 +110,7 @@ pm2 startup            # once, so pm2 starts again after a reboot
 Then let Caddy forward your domain to the port in `.env`:
 
 ```text
-pagerpulse.example.com {
+pager-pulse.ravenberg.dev {
 	reverse_proxy 127.0.0.1:3002
 }
 ```
