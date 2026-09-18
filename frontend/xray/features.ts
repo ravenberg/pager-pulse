@@ -110,10 +110,9 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     title: 'Always prop',
     code: 'always(value)',
     blurb:
-      "Sent with every response, partial reloads included, even when they didn't ask for it. The X-ray report itself travels this way.",
+      "Sent with every response, partial reloads included, even when they didn't ask for it. The paging banner is shared this way, so any page's poll brings a new page along.",
     group: 'Props',
     color: 'blue',
-    planned: "Used by X-ray's own report",
   },
   merge: {
     title: 'Merge prop',

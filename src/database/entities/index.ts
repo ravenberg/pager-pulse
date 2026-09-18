@@ -8,3 +8,6 @@ export * from './schedule.entity.js';
 export * from './service.entity.js';
 export * from './timeline-entry.entity.js';
 export * from './user.entity.js';
+export * from './escalation-path.entity.js';
+export * from './escalation.entity.js';
+export * from './schedule-override.entity.js';

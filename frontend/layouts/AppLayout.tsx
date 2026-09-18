@@ -28,6 +28,7 @@ import {
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
 import { ColorSchemeToggle } from '../components/ColorSchemeToggle';
+import { PagingBanner } from '../components/PagingBanner';
 import { Providers } from '../components/Providers';
 import { capitalize } from '../lib/format';
 import type { SharedProps } from '../types';
@@ -164,7 +165,10 @@ function Shell({ children }: { children: ReactNode }) {
         />
       </AppShell.Navbar>
 
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main>
+        <PagingBanner />
+        {children}
+      </AppShell.Main>
     </AppShell>
   );
 }

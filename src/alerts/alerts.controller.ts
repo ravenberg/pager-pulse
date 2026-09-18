@@ -16,6 +16,7 @@ import {
   View,
   ViewService,
   deepMerge,
+  optional,
   prepend,
   requestOrigin,
 } from 'nestjs-mvc';
@@ -26,6 +27,7 @@ import { Responder, Roles } from '../auth/roles.decorator.js';
 import {
   Alert,
   AlertSource,
+  EscalationPath,
   Service,
   User,
 } from '../database/entities/index.js';
@@ -46,6 +48,8 @@ export class AlertsController {
     @InjectRepository(AlertSource)
     private readonly sources: Repository<AlertSource>,
     @InjectRepository(Service) private readonly services: Repository<Service>,
+    @InjectRepository(EscalationPath)
+    private readonly paths: Repository<EscalationPath>,
   ) {}
 
   /**
@@ -85,6 +89,12 @@ export class AlertsController {
               ]),
             )
           : {},
+      ),
+      // For the escalate dialog, when it opens.
+      escalationPaths: optional(async () =>
+        (await this.paths.find({ order: { name: 'ASC' } })).map(
+          ({ id, name }) => ({ id, name }),
+        ),
       ),
       canRespond: user.role !== 'viewer',
       canManage: user.role === 'admin',

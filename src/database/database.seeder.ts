@@ -6,12 +6,14 @@ import { hashPassword } from '../auth/passwords.js';
 import {
   Alert,
   AlertSource,
+  EscalationPath,
   FollowUp,
   Incident,
   type IncidentStatus,
   PostMortem,
   Schedule,
   ScheduleMember,
+  ScheduleOverride,
   Service,
   type Severity,
   TimelineEntry,
@@ -75,6 +77,8 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
       await this.seedAlerts();
     if ((await this.db.getRepository(PostMortem).count()) === 0)
       await this.seedPostIncident();
+    if ((await this.db.getRepository(EscalationPath).count()) === 0)
+      await this.seedEscalation();
   }
 
   private async seed() {
@@ -213,26 +217,7 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
       }
     }
 
-    const monday = new Date(now - ((new Date(now).getDay() + 6) % 7) * DAY);
-    monday.setHours(9, 0, 0, 0);
-    await this.db.getRepository(Schedule).save([
-      {
-        name: 'Primary',
-        startsAt: new Date(monday.getTime() - 4 * 7 * DAY),
-        shiftHours: 168,
-        members: responders.map(
-          (user, position) => ({ user, position }) as ScheduleMember,
-        ),
-      },
-      {
-        name: 'Payments escalation',
-        startsAt: new Date(monday.getTime() - 3 * DAY),
-        shiftHours: 24,
-        members: responders
-          .slice(1, 4)
-          .map((user, position) => ({ user, position }) as ScheduleMember),
-      },
-    ]);
+    await this.seedSchedules();
 
     this.logger.log(
       'Seeded. Log in as ada@pagerpulse.dev with password "password".',
@@ -389,5 +374,83 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     this.logger.log(
       `Seeded post-mortems; INC-${secret.id} is private to admins, its reporter and its lead.`,
     );
+  }
+
+  /** Two rotations, unless there are schedules already. */
+  private async seedSchedules() {
+    const schedules = this.db.getRepository(Schedule);
+    if ((await schedules.count()) > 0) return;
+    const responders = await this.db
+      .getRepository(User)
+      .find({ where: { role: Not('viewer') }, order: { id: 'ASC' } });
+    const now = Date.now();
+    const monday = new Date(now - ((new Date(now).getDay() + 6) % 7) * DAY);
+    monday.setHours(9, 0, 0, 0);
+    await schedules.save([
+      {
+        name: 'Primary',
+        startsAt: new Date(monday.getTime() - 4 * 7 * DAY),
+        shiftHours: 168,
+        members: responders.map(
+          (user, position) => ({ user, position }) as ScheduleMember,
+        ),
+      },
+      {
+        name: 'Payments escalation',
+        startsAt: new Date(monday.getTime() - 3 * DAY),
+        shiftHours: 24,
+        members: responders
+          .slice(1, 4)
+          .map((user, position) => ({ user, position }) as ScheduleMember),
+      },
+    ]);
+  }
+
+  /**
+   * Escalation paths over the rotations (recreated if they were deleted), and
+   * an override tomorrow, so on-call has something to show.
+   */
+  private async seedEscalation() {
+    await this.seedSchedules();
+    const schedules = await this.db
+      .getRepository(Schedule)
+      .find({ order: { id: 'ASC' } });
+    const [primary, second] = schedules;
+    const users = this.db.getRepository(User);
+    const ada = await users.findOneBy({ email: 'ada@pagerpulse.dev' });
+    const grace = await users.findOneBy({ email: 'grace@pagerpulse.dev' });
+
+    await this.db.getRepository(EscalationPath).save([
+      {
+        name: 'Default',
+        levels: [
+          { scheduleId: primary.id, userId: null, delayMinutes: 5 },
+          ...(second
+            ? [{ scheduleId: second.id, userId: null, delayMinutes: 10 }]
+            : []),
+          { scheduleId: null, userId: ada?.id ?? null, delayMinutes: 15 },
+        ],
+      },
+      {
+        name: 'Straight to the lead',
+        levels: [
+          { scheduleId: null, userId: ada?.id ?? null, delayMinutes: 5 },
+        ],
+      },
+    ]);
+
+    if (grace) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(18, 0, 0, 0);
+      await this.db.getRepository(ScheduleOverride).save({
+        schedule: primary,
+        user: grace,
+        startsAt: tomorrow,
+        endsAt: new Date(tomorrow.getTime() + 15 * 60 * 60 * 1000),
+        createdBy: grace,
+      });
+    }
+    this.logger.log('Seeded escalation paths and an override.');
   }
 }

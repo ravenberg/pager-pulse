@@ -37,6 +37,8 @@ export interface SharedProps {
   openIncidents?: number;
   /** Null for guests. */
   openAlerts?: number | null;
+  /** Pages reaching the logged-in user right now. */
+  paging?: EscalationRow[];
   [key: string]: unknown;
 }
 
@@ -56,4 +58,20 @@ export interface AlertRow {
   firstSeenAt: string;
   lastSeenAt: string;
   resolvedAt: string | null;
+}
+
+export interface EscalationRow {
+  id: number;
+  reason: string;
+  path: string;
+  level: number;
+  levels: number;
+  paging: Person | null;
+  escalatesAt: string | null;
+  incident: { id: number; reference: string } | null;
+  alert: { id: number; title: string } | null;
+  createdBy: Person | null;
+  createdAt: string;
+  acknowledged: boolean;
+  acknowledgedBy: Person | null;
 }

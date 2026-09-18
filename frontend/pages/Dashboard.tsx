@@ -160,6 +160,11 @@ export default function Dashboard({
               </Anchor>
             </Group>
             <Stack gap="sm">
+              {onCall.length === 0 && (
+                <Text size="sm" c="dimmed">
+                  No schedules yet, so nobody is holding the pager.
+                </Text>
+              )}
               {onCall.map((schedule) => (
                 <Group key={schedule.id} wrap="nowrap">
                   <Avatar color="red" radius="xl">

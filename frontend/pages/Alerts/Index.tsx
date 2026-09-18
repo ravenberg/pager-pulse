@@ -20,6 +20,7 @@ import {
 import { Link, router, usePoll } from 'nestjs-mvc/react';
 import { useRef } from 'react';
 import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
+import { EscalateButton } from '../../components/EscalateButton';
 import { PageHeader } from '../../components/PageHeader';
 import { relative } from '../../lib/format';
 import { appLayout } from '../../layouts/AppLayout';
@@ -31,6 +32,8 @@ interface Props {
   alerts: AlertRow[];
   /** The latest copy of every alert that changed while the page was open. */
   changes: Record<string, AlertRow>;
+  /** Loaded when an escalate dialog opens. */
+  escalationPaths?: { id: number; name: string }[];
   canRespond: boolean;
   canManage: boolean;
 }
@@ -71,6 +74,7 @@ export default function Index({
   counts,
   alerts,
   changes,
+  escalationPaths,
   canRespond,
   canManage,
 }: Props) {
@@ -197,6 +201,15 @@ export default function Index({
                 {canRespond && (
                   <Table.Td>
                     <Group gap={4} justify="flex-end" wrap="nowrap">
+                      {alert.status === 'firing' && (
+                        <EscalateButton
+                          paths={escalationPaths}
+                          alertId={alert.id}
+                          reason={alert.title}
+                          size="compact-xs"
+                          variant="light"
+                        />
+                      )}
                       {alert.status === 'firing' && (
                         <Tooltip label="Acknowledge">
                           <ActionIcon

@@ -15,19 +15,8 @@ import {
   requestState,
 } from 'nestjs-mvc';
 import { type Observable, finalize, map } from 'rxjs';
+import { Opaque } from '../common/opaque.js';
 import { XrayService } from './xray.service.js';
-
-/**
- * Serialises like the plain object it holds, but is not one. nestjs-mvc
- * re-matches the children of a plain object against `only` on a partial
- * reload, even under `always()`, which would empty the report.
- */
-class Opaque {
-  constructor(private readonly data: unknown) {}
-  toJSON() {
-    return this.data;
-  }
-}
 
 /**
  * Looks at what a handler returns before nestjs-mvc resolves it, so it sees
@@ -69,7 +58,12 @@ export class XrayInterceptor implements NestInterceptor {
       map((props: unknown) => {
         if (typeof props !== 'object' || props === null) return props;
         const raw = props as Record<string, unknown>;
-        const described = this.xray.describeProps(raw);
+        // Shared props can carry helpers too (the paging banner is always()).
+        const shared = this.xray
+          .describeProps(requestState(req).shared)
+          .filter((prop) => prop.kind !== 'eager' && prop.kind !== 'lazy')
+          .map((prop) => ({ ...prop, detail: 'shared' }));
+        const described = [...this.xray.describeProps(raw), ...shared];
         this.xray.observe(route.handler, { props: described });
         // Set by the handler at runtime, where @EncryptHistory() is static.
         if (requestState(req).encryptHistory)

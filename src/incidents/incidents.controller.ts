@@ -18,6 +18,7 @@ import { Responder } from '../auth/roles.decorator.js';
 import { paginate } from '../common/pagination.js';
 import {
   Alert,
+  EscalationPath,
   Incident,
   PostMortem,
   SEVERITIES,
@@ -64,6 +65,8 @@ export class IncidentsController {
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
     @InjectRepository(PostMortem)
     private readonly postMortems: Repository<PostMortem>,
+    @InjectRepository(EscalationPath)
+    private readonly paths: Repository<EscalationPath>,
   ) {}
 
   @Get()
@@ -211,6 +214,12 @@ export class IncidentsController {
       ),
       users: async () =>
         (await this.users.find({ order: { name: 'ASC' } })).map(person),
+      // For the escalate dialog, when it opens.
+      escalationPaths: optional(async () =>
+        (await this.paths.find({ order: { name: 'ASC' } })).map(
+          ({ id, name }) => ({ id, name }),
+        ),
+      ),
       canRespond: canRespond(user),
     };
   }

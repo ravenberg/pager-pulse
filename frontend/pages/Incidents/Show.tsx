@@ -39,6 +39,7 @@ import {
 import { Head, Link, router, useForm, usePoll } from 'nestjs-mvc/react';
 import { Fragment, type FormEvent, type ReactNode } from 'react';
 import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
+import { EscalateButton } from '../../components/EscalateButton';
 import { FollowUpItem } from '../../components/FollowUpItem';
 import { capitalize, dateTime, duration, relative } from '../../lib/format';
 import { STATUS_COLOR } from '../../lib/theme';
@@ -86,6 +87,8 @@ interface Props {
   followUps?: FollowUpRow[];
   alerts?: AlertRow[];
   users: Person[];
+  /** Loaded when the escalate dialog opens. */
+  escalationPaths?: { id: number; name: string }[];
   canRespond: boolean;
 }
 
@@ -487,6 +490,7 @@ export default function Show({
   followUps,
   alerts,
   users,
+  escalationPaths,
   canRespond,
 }: Props) {
   // Somebody else may be working this incident: refresh the header and the
@@ -538,13 +542,20 @@ export default function Show({
       <Anchor component={Link} href="/incidents" size="sm" c="dimmed">
         ← Incidents
       </Anchor>
-      <Group mt="xs" mb="sm" gap="sm">
+      <Group mt="xs" mb="sm" gap="sm" justify="space-between" wrap="nowrap">
         <Title order={2}>
           <Text span inherit c="dimmed">
             {incident.reference}
           </Text>{' '}
           {incident.title}
         </Title>
+        {canRespond && incident.status !== 'resolved' && (
+          <EscalateButton
+            paths={escalationPaths}
+            incidentId={incident.id}
+            reason={`${incident.reference}: ${incident.title}`}
+          />
+        )}
       </Group>
       <Group mb="lg" gap="xs" data-xray="incident">
         <Lifecycle

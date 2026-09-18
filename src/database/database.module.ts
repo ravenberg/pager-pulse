@@ -4,11 +4,14 @@ import { DatabaseSeeder } from './database.seeder.js';
 import {
   Alert,
   AlertSource,
+  Escalation,
+  EscalationPath,
   FollowUp,
   Incident,
   PostMortem,
   Schedule,
   ScheduleMember,
+  ScheduleOverride,
   Service,
   TimelineEntry,
   User,
@@ -25,6 +28,9 @@ const entities = [
   FollowUp,
   Schedule,
   ScheduleMember,
+  ScheduleOverride,
+  EscalationPath,
+  Escalation,
 ];
 
 @Global()
