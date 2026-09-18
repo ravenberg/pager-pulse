@@ -34,6 +34,7 @@ const CLIENT_ONLY: FeatureKey[] = [
   'poll',
   'prefetch',
   'precognition',
+  'error-bag',
 ];
 
 function FeatureBadge({ featureKey }: { featureKey: FeatureKey }) {

@@ -19,6 +19,7 @@ export type FeatureKey =
   | 'scroll'
   | 'once'
   | 'validation'
+  | 'error-bag'
   | 'flash'
   | 'skip-csrf'
   | 'signed-url'
@@ -105,7 +106,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Never sent unless the client asks for it by name in a partial reload, for a tab or a dialog that may never open.',
     group: 'Props',
     color: 'blue',
-    planned: 'Phase 2 · incident tabs',
   },
   always: {
     title: 'Always prop',
@@ -123,7 +123,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The client adds the new items to what it has instead of replacing the list; matchOn updates an item it already has in place.',
     group: 'Props',
     color: 'blue',
-    planned: 'Phase 2 · timeline via cursor',
   },
   prepend: {
     title: 'Prepend prop',
@@ -161,6 +160,14 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     code: '@Body({ schema: DeclareSchema })',
     blurb:
       "A Zod schema on the body. When it fails, the user goes back to the form and the messages arrive as the page's errors prop.",
+    group: 'Forms',
+    color: 'orange',
+  },
+  'error-bag': {
+    title: 'Error bags',
+    code: "form.post(url, { errorBag: 'update' })",
+    blurb:
+      'Two forms on one page: each names a bag, and its validation messages come back under errors.<bag>, so they never show up in the other form.',
     group: 'Forms',
     color: 'orange',
   },

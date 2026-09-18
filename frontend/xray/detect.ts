@@ -96,6 +96,10 @@ export function pageFeatures(
     routeFeatures({ ...action, public: true }, null, action.flash, found);
 
   for (const request of requests) {
+    if (request.errorBag)
+      add(found, 'error-bag', {
+        label: `${request.errorBag}: ${request.method.toUpperCase()} ${request.url}`,
+      });
     const key = CLIENT[request.kind];
     if (!key) continue;
     const props = [...request.only, ...request.except.map((p) => `−${p}`)];

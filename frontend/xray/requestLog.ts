@@ -25,6 +25,8 @@ export interface RequestEntry {
   outcome: 'pending' | 'ok' | 'errors' | 'cancelled';
   /** For polls: the interval it settled into. */
   every?: number;
+  /** For mutations: the error bag the form named. */
+  errorBag?: string;
 }
 
 const MAX = 60;
@@ -129,12 +131,14 @@ export function installRequestLog(initialUrl: string) {
       id: string;
       deferredProps?: boolean;
       poll?: boolean;
+      errorBag?: string | null;
     };
     started.set(visit.id, performance.now());
     add({
       id: visit.id,
       at: Date.now(),
       ...classify(visit),
+      errorBag: visit.errorBag ?? undefined,
       method: visit.method,
       url: visit.url.pathname + visit.url.search,
       only: visit.only,

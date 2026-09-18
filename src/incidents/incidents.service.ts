@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository } from 'typeorm';
+import { In, IsNull, MoreThan, Not, Repository } from 'typeorm';
 import {
   FollowUp,
   Incident,
@@ -51,12 +51,36 @@ export class IncidentsService {
     return incident;
   }
 
-  timelineOf(incident: Incident) {
+  /** Oldest first, as the story unfolded; with `afterId` only what came since. */
+  timelineOf(incident: Incident, afterId?: number) {
     return this.timeline.find({
-      where: { incident: { id: incident.id } },
+      where: {
+        incident: { id: incident.id },
+        ...(afterId ? { id: MoreThan(afterId) } : {}),
+      },
+      relations: { author: true },
+      order: { createdAt: 'ASC', id: 'ASC' },
+    });
+  }
+
+  /** The written updates only, newest first. */
+  updatesOf(incident: Incident) {
+    return this.timeline.find({
+      where: { incident: { id: incident.id }, kind: 'update' },
       relations: { author: true },
       order: { createdAt: 'DESC', id: 'DESC' },
     });
+  }
+
+  /** For the tab labels. */
+  async countsOf(incident: Incident) {
+    const where = { incident: { id: incident.id } };
+    const [updates, timeline, followUps] = await Promise.all([
+      this.timeline.countBy({ ...where, kind: 'update' }),
+      this.timeline.countBy(where),
+      this.followUps.countBy({ ...where, completedAt: IsNull() }),
+    ]);
+    return { updates, timeline, followUps };
   }
 
   followUpsOf(incident: Incident) {

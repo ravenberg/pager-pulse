@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -9,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { View, ViewService, scroll } from 'nestjs-mvc';
+import { View, ViewService, merge, optional, scroll } from 'nestjs-mvc';
 import { Not, Repository } from 'typeorm';
 import { z } from 'zod';
 import { CurrentUser } from '../auth/current-user.decorator.js';
@@ -39,6 +40,12 @@ import {
 } from './serializers.js';
 
 const canRespond = (user: User) => user.role !== 'viewer';
+
+const TABS = ['updates', 'timeline', 'followUps', 'alerts'] as const;
+type Tab = (typeof TABS)[number];
+
+/** Sent by the timeline's poll: the id of the last entry it has. */
+const TIMELINE_AFTER_HEADER = 'x-timeline-after';
 
 @Controller('incidents')
 export class IncidentsController {
@@ -118,23 +125,58 @@ export class IncidentsController {
       .redirect(`/incidents/${incident.id}`);
   }
 
+  /**
+   * The incident, with its content in tabs. The active tab (`?tab=`) arrives
+   * with the page; the others are `optional()`, never computed until the
+   * client switches to one, which is a partial reload asking for just it.
+   * The timeline is a `merge()` prop: the poll sends the last id it has and
+   * gets only the entries after it, which the client appends.
+   */
   @Get(':id')
   @View('Incidents/Show')
-  async show(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
+  async show(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('tab') tabQuery: string | undefined,
+    @Headers(TIMELINE_AFTER_HEADER) afterHeader: string | undefined,
+    @CurrentUser() user: User,
+  ) {
     const incident = await this.incidents.find(id);
+    const tab: Tab = TABS.find((t) => t === tabQuery) ?? 'updates';
+    const onTab = <T>(name: Tab, value: () => Promise<T>) =>
+      name === tab ? value : optional(value);
+    const afterId = Number(afterHeader) || undefined;
+
     return {
+      tab,
       incident: {
         ...incidentRow(incident),
         summary: incident.summary,
         isPublic: incident.isPublic,
         reporter: person(incident.reporter),
       },
-      // Plain props, so the page can poll just these two with a partial reload.
-      timeline: async () =>
-        (await this.incidents.timelineOf(incident)).map(timelineEntry),
-      followUps: async () =>
+      counts: async () => ({
+        ...(await this.incidents.countsOf(incident)),
+        alerts: await this.alerts.countBy({ incident: { id: incident.id } }),
+      }),
+      updates: onTab('updates', async () =>
+        (await this.incidents.updatesOf(incident)).map(timelineEntry),
+      ),
+      timeline:
+        tab === 'timeline'
+          ? merge(
+              async () =>
+                (await this.incidents.timelineOf(incident, afterId)).map(
+                  timelineEntry,
+                ),
+              { matchOn: 'id' },
+            )
+          : optional(async () =>
+              (await this.incidents.timelineOf(incident)).map(timelineEntry),
+            ),
+      followUps: onTab('followUps', async () =>
         (await this.incidents.followUpsOf(incident)).map(followUp),
-      alerts: async () =>
+      ),
+      alerts: onTab('alerts', async () =>
         (
           await this.alerts.find({
             where: { incident: { id: incident.id } },
@@ -142,6 +184,7 @@ export class IncidentsController {
             order: { firstSeenAt: 'DESC' },
           })
         ).map(alertRow),
+      ),
       users: async () =>
         (await this.users.find({ order: { name: 'ASC' } })).map(person),
       canRespond: canRespond(user),
