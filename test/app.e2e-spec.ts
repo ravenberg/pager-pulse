@@ -55,12 +55,15 @@ function browser() {
   const agent = request.agent(app.getHttpServer());
   let version = '';
 
-  /** An Inertia visit; a 409 (new version or new user) is retried once, as the client reloads. */
+  /**
+   * A page visit. A 409 (a new version, then possibly a new user) is retried
+   * with the version the server sent, as the browser reloads.
+   */
   async function visit(
     url: string,
     headers: Record<string, string> = {},
   ): Promise<request.Response> {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const response = await agent
         .get(url)
         .set({ 'X-Inertia': 'true', 'X-Inertia-Version': version, ...headers });
@@ -586,7 +589,7 @@ describe('incident board', () => {
       'X-Inertia-Partial-Data': 'active,openIncidents',
     };
 
-    // A viewer is refused, which is what makes the client put the card back.
+    // A viewer is refused (the board doesn't let them drag in the first place).
     const barbara = browser();
     await barbara.login('barbara@pagerpulse.dev');
     await barbara.visit('/');

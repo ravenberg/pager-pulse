@@ -71,7 +71,11 @@ function signingKeys() {
         [403, 404, 500, 503].includes(status)
           ? {
               component: 'Errors/Show',
-              props: { status, reason: (exception as Error).message },
+              props: {
+                status,
+                // Ours to show for a 403 or 404; a 500's message is internal.
+                reason: status < 500 ? (exception as Error).message : undefined,
+              },
               shared: true,
             }
           : undefined,

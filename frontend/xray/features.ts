@@ -177,7 +177,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "A Zod schema on the body. When it fails, the user goes back to the form and the messages arrive as the page's errors prop.",
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/forms#the-controller',
+    docs: '/docs/validation',
   },
   'error-bag': {
     title: 'Error bags',
@@ -186,7 +186,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Two forms on one page: each names a bag, and its validation messages come back under errors.<bag>, so they never show up in the other form.',
     group: 'Forms',
     color: 'orange',
-    docs: '/docs/forms#two-forms-on-one-page',
+    docs: '/docs/validation#two-forms-on-one-page',
   },
   flash: {
     title: 'Flash messages',
@@ -222,7 +222,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The client asks for some props of the current page; the server runs the handler but resolves only those.',
     group: 'Client',
     color: 'cyan',
-    docs: '/docs/loading-data#asking-for-props-by-name',
+    docs: '/docs/partial-reloads',
   },
   poll: {
     title: 'Polling',
@@ -231,7 +231,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'A partial reload on a timer: live data with no WebSocket and no separate API.',
     group: 'Client',
     color: 'cyan',
-    docs: '/docs/loading-data#refresh-on-a-timer',
+    docs: '/docs/polling',
   },
   prefetch: {
     title: 'Prefetching',
