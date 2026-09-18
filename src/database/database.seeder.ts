@@ -16,6 +16,7 @@ import {
   ScheduleOverride,
   Service,
   type Severity,
+  Team,
   TimelineEntry,
   User,
 } from './entities/index.js';
@@ -80,6 +81,8 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     if ((await this.db.getRepository(EscalationPath).count()) === 0)
       await this.seedEscalation();
     await this.seedWriteUp();
+    if ((await this.db.getRepository(Team).count()) === 0)
+      await this.seedTeams();
   }
 
   private async seed() {
@@ -491,5 +494,35 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
         'Configuration changes now roll out behind the same canary as code, and we alert when the pool is 80% used rather than full.',
     });
     this.logger.log(`Seeded a public write-up for INC-${incident.id}.`);
+  }
+
+  /** Two teams owning the services, so the catalog has something in it. */
+  private async seedTeams() {
+    const users = this.db.getRepository(User);
+    const byEmail = (email: string) => users.findOneByOrFail({ email });
+    const [platform, payments] = await this.db.getRepository(Team).save([
+      {
+        name: 'Platform',
+        members: [
+          await byEmail('ada@pagerpulse.dev'),
+          await byEmail('linus@pagerpulse.dev'),
+          await byEmail('ken@pagerpulse.dev'),
+        ],
+      },
+      {
+        name: 'Payments',
+        members: [
+          await byEmail('grace@pagerpulse.dev'),
+          await byEmail('margaret@pagerpulse.dev'),
+        ],
+      },
+    ]);
+    const services = this.db.getRepository(Service);
+    for (const service of await services.find()) {
+      service.team = ['Payments', 'Notifications'].includes(service.name)
+        ? payments
+        : platform;
+      await services.save(service);
+    }
   }
 }

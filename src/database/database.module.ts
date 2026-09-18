@@ -15,6 +15,7 @@ import {
   ScheduleOverride,
   Service,
   StatusSubscriber,
+  Team,
   TimelineEntry,
   User,
 } from './entities/index.js';
@@ -35,6 +36,7 @@ const entities = [
   Escalation,
   StatusSubscriber,
   Attachment,
+  Team,
 ];
 
 @Global()

@@ -13,12 +13,25 @@ export const peopleOnce = (users: Repository<User>) =>
     as: 'people',
   });
 
+/**
+ * The services, with their owning team: the declare form picks from them and
+ * the catalog manages them. The catalog uses it too, so a `view.refresh(
+ * 'services')` after an edit lands on a render that carries it, and every
+ * page's copy is up to date after that.
+ */
 export const servicesOnce = (services: Repository<Service>) =>
   once(
     async () =>
-      (await services.find({ order: { position: 'ASC' } })).map((s) => ({
+      (
+        await services.find({
+          relations: { team: true },
+          order: { position: 'ASC', name: 'ASC' },
+        })
+      ).map((s) => ({
         id: s.id,
         name: s.name,
+        description: s.description,
+        team: s.team && { id: s.team.id, name: s.team.name },
       })),
     { as: 'services' },
   );

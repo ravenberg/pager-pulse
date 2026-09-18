@@ -207,6 +207,33 @@ describe('forms', () => {
   });
 });
 
+describe('catalog', () => {
+  it('sends the kept services list again after a change (view.refresh)', async () => {
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const kept = { 'X-Inertia-Except-Once-Props': 'services,people' };
+
+    // The browser says it has the list: the server leaves it out.
+    expect(
+      (await ada.visit('/catalog', kept)).body.props.services,
+    ).toBeUndefined();
+
+    await ada.agent
+      .post('/catalog/services')
+      .set({ ...ada.inertia(), Referer: '/catalog' })
+      .send({ name: 'Search', description: 'Full-text search' })
+      .expect(302);
+
+    // The render after the change sends it anyway, with the new service…
+    const after = (await ada.visit('/catalog', kept)).body.props.services;
+    expect(after.map((s: { name: string }) => s.name)).toContain('Search');
+    // …and the one after that trusts the browser's copy again.
+    expect(
+      (await ada.visit('/catalog', kept)).body.props.services,
+    ).toBeUndefined();
+  });
+});
+
 describe('attachments', () => {
   it('uploads a file, refuses a wrong one on its form field, and serves it back', async () => {
     process.env.STORAGE_PATH = await mkdtemp(join(tmpdir(), 'pager-pulse-'));

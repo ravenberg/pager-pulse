@@ -6,6 +6,7 @@ import {
 import { MvcModule } from 'nestjs-mvc';
 import { AlertsModule } from './alerts/alerts.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import type { User } from './database/entities/index.js';
@@ -40,6 +41,7 @@ function signingKeys() {
     AlertsModule,
     PostMortemsModule,
     DashboardModule,
+    CatalogModule,
     OnCallModule,
     MvcModule.forRoot({
       template,

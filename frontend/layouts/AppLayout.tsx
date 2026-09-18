@@ -16,6 +16,7 @@ import {
   IconAlertTriangle,
   IconBellRinging,
   IconBolt,
+  IconBook,
   IconChecklist,
   IconExternalLink,
   IconFlame,
@@ -39,6 +40,7 @@ const NAV = [
   { href: '/alerts', label: 'Alerts', icon: IconBellRinging },
   { href: '/follow-ups', label: 'Follow-ups', icon: IconChecklist },
   { href: '/on-call', label: 'On-call', icon: IconPhoneCall },
+  { href: '/catalog', label: 'Catalog', icon: IconBook },
 ];
 
 const initials = (name: string) =>
