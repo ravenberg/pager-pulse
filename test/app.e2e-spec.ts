@@ -546,10 +546,17 @@ describe('saved views', () => {
 
     await save('Major').expect(302);
     await save('Major').expect(302);
-    const page = (await grace.visit('/incidents')).body;
-    expect(page.props.errors).toEqual({
+    // The form follows the redirect as a partial reload, as the page does.
+    const back = (
+      await grace.visit('/incidents', {
+        'X-Inertia-Partial-Component': 'Incidents/Index',
+        'X-Inertia-Partial-Data': 'views,errors',
+      })
+    ).body;
+    expect(back.props.errors).toEqual({
       saveView: { name: 'You already have a view with that name.' },
     });
+    const page = (await grace.visit('/incidents')).body;
     expect(page.props.views).toEqual([
       expect.objectContaining({
         name: 'Major',

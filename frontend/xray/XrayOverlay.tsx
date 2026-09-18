@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Anchor,
   Badge,
   Button,
   Code,
@@ -13,9 +14,20 @@ import {
   Text,
   Tooltip,
 } from '@mantine/core';
-import { IconBolt, IconTrash, IconX } from '@tabler/icons-react';
+import {
+  IconBolt,
+  IconExternalLink,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react';
 import { router, usePage } from 'nestjs-mvc/react';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { type Evidence, ordered, pageFeatures, requestsOnPage } from './detect';
 import {
   installRequestLog,
@@ -23,6 +35,7 @@ import {
   type RequestKind,
   requestLog,
 } from './requestLog';
+import { docsUrl } from './features';
 import type { PropKind, XrayReport } from './types';
 
 export const setXray = (enabled: boolean) =>
@@ -98,6 +111,35 @@ const KIND_COLOR: Record<PropKind, string> = {
   once: 'lime',
 };
 
+/** Each kind of prop, to its page in the feature reference. */
+const KIND_DOCS: Record<PropKind, string> = {
+  eager: '/docs/view',
+  lazy: '/docs/lazy-props',
+  defer: '/docs/defer',
+  optional: '/docs/optional',
+  always: '/docs/always',
+  merge: '/docs/merge',
+  prepend: '/docs/merge#append-and-prepend',
+  'deep-merge': '/docs/merge#deep-merge',
+  scroll: '/docs/scroll',
+  once: '/docs/once-props',
+};
+
+/** Opens the docs in a new tab, next to the app. */
+function DocsLink({ path, children }: { path: string; children: ReactNode }) {
+  return (
+    <Anchor
+      href={docsUrl(path)}
+      target="_blank"
+      rel="noreferrer"
+      c="inherit"
+      underline="hover"
+    >
+      {children}
+    </Anchor>
+  );
+}
+
 const REQUEST_COLOR: Record<RequestKind, string> = {
   load: 'gray',
   visit: 'gray',
@@ -147,7 +189,13 @@ function FeaturesTab({
         <Paper key={key} withBorder p="sm">
           <Group justify="space-between" gap="xs" mb={4}>
             <Text fw={600} size="sm">
-              {feature.title}
+              <DocsLink path={feature.docs}>
+                {feature.title}{' '}
+                <IconExternalLink
+                  size={12}
+                  style={{ verticalAlign: -1, opacity: 0.6 }}
+                />
+              </DocsLink>
             </Text>
             <Badge size="xs" variant="dot" color={feature.color}>
               {feature.group}
@@ -210,13 +258,16 @@ function PropsTab({
                   )}
                 </Table.Td>
                 <Table.Td>
-                  <Badge
-                    size="xs"
-                    color={KIND_COLOR[prop.kind]}
-                    variant="light"
-                  >
-                    {prop.kind}
-                  </Badge>
+                  <DocsLink path={KIND_DOCS[prop.kind]}>
+                    <Badge
+                      size="xs"
+                      color={KIND_COLOR[prop.kind]}
+                      variant="light"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {prop.kind}
+                    </Badge>
+                  </DocsLink>
                 </Table.Td>
                 <Table.Td ta="right" c={bytes === null ? 'dimmed' : undefined}>
                   {bytes === null ? 'not loaded' : kb(bytes)}

@@ -95,8 +95,10 @@ function SaveView({
     form.transform((data) => ({ ...data, filters, columns }));
     form.post('/incidents/views', {
       errorBag: 'saveView',
-      // The redirect back only needs to bring the views along.
-      only: ['views'],
+      // The redirect back only needs to bring the views along, and the
+      // errors: named, because an always() object (errors is one) comes back
+      // empty from a partial reload that doesn't name it.
+      only: ['views', 'errors'],
       preserveScroll: true,
       preserveState: true,
       onSuccess: () => {
