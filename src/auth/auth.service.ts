@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type AnyResponse, clearCookie, writeCookie } from 'nestjs-mvc';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { User } from '../database/entities/index.js';
 import { verifyPassword } from './passwords.js';
 
@@ -28,17 +28,19 @@ export class AuthService {
         email: true,
         role: true,
         passwordHash: true,
+        deactivatedAt: true,
       },
     });
     const valid = await verifyPassword(password, user?.passwordHash);
-    return valid && user ? user : null;
+    return valid && user && !user.deactivatedAt ? user : null;
   }
 
   /** The user a token belongs to, or `null` when it is missing, forged, expired, or the user is gone. */
   async userFromToken(token: string): Promise<User | null> {
     try {
       const { sub } = await this.jwt.verifyAsync<{ sub: number }>(token);
-      return await this.users.findOneBy({ id: sub });
+      // Checked on every request, so deactivating someone logs them out.
+      return await this.users.findOneBy({ id: sub, deactivatedAt: IsNull() });
     } catch {
       return null;
     }

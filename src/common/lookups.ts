@@ -1,17 +1,25 @@
 import { once } from 'nestjs-mvc';
-import type { Repository } from 'typeorm';
+import { IsNull, type Repository } from 'typeorm';
 import type { Service, User } from '../database/entities/index.js';
 import { person } from '../incidents/serializers.js';
 
 /**
  * The lists many forms pick from. `once()` under a shared key: the browser
  * keeps its copy across pages and says so with every visit, and the server
- * skips the query while it does. A full page load starts over.
+ * skips the query while it does. A full page load starts over. People
+ * management calls `view.refresh('people')` when someone joins or leaves.
  */
 export const peopleOnce = (users: Repository<User>) =>
-  once(async () => (await users.find({ order: { name: 'ASC' } })).map(person), {
-    as: 'people',
-  });
+  once(
+    async () =>
+      (
+        await users.find({
+          where: { deactivatedAt: IsNull() },
+          order: { name: 'ASC' },
+        })
+      ).map(person),
+    { as: 'people' },
+  );
 
 /**
  * The services, with their owning team: the declare form picks from them and

@@ -26,6 +26,8 @@ import {
   IconPhoneCall,
   IconPlus,
   IconSearch,
+  IconUserCircle,
+  IconUsers,
 } from '@tabler/icons-react';
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
@@ -126,6 +128,23 @@ function Shell({ children }: { children: ReactNode }) {
                   <Menu.Label>
                     {user.name} · {capitalize(user.role)}
                   </Menu.Label>
+                  <Menu.Item
+                    component={Link}
+                    href="/account"
+                    leftSection={<IconUserCircle size={16} />}
+                  >
+                    Your account
+                  </Menu.Item>
+                  {user.role === 'admin' && (
+                    <Menu.Item
+                      component={Link}
+                      href="/people"
+                      leftSection={<IconUsers size={16} />}
+                    >
+                      People
+                    </Menu.Item>
+                  )}
+                  <Menu.Divider />
                   <Menu.Item
                     leftSection={<IconBolt size={16} />}
                     rightSection={

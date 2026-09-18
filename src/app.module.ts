@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { MvcModule } from 'nestjs-mvc';
 import { AlertsModule } from './alerts/alerts.module.js';
+import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { SearchModule } from './search/search.module.js';
@@ -13,6 +14,7 @@ import { DatabaseModule } from './database/database.module.js';
 import type { User } from './database/entities/index.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
+import { PeopleModule } from './people/people.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
 import { appUrl } from './common/app-url.js';
@@ -45,6 +47,8 @@ function signingKeys() {
     CatalogModule,
     SearchModule,
     OnCallModule,
+    AccountModule,
+    PeopleModule,
     MvcModule.forRoot({
       template,
       keys: signingKeys(),

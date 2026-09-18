@@ -30,6 +30,9 @@ const upstream = {
   },
 };
 
+/** Every email the app sends, instead of the log. */
+const mailbox: { to: string; subject: string; text: string }[] = [];
+
 beforeAll(async () => {
   process.env.DATABASE_PATH = ':memory:';
   // Imported late: the database module reads DATABASE_PATH when it loads.
@@ -37,11 +40,16 @@ beforeAll(async () => {
   const { configureApp } = await import('../src/app.setup.js');
   const { UpstreamService } =
     await import('../src/dashboard/upstream.service.js');
+  const { MailService } = await import('../src/mail/mail.service.js');
   const module = await Test.createTestingModule({
     imports: [AppModule],
   })
     .overrideProvider(UpstreamService)
     .useValue(upstream)
+    .overrideProvider(MailService)
+    .useValue({
+      send: async (email: (typeof mailbox)[number]) => void mailbox.push(email),
+    })
     .compile();
   app = configureApp(module.createNestApplication());
   await app.init();
@@ -70,11 +78,8 @@ function browser() {
     throw new Error(`${url} kept answering 409`);
   }
 
-  async function login(email: string) {
-    await agent
-      .post('/login')
-      .send({ email, password: 'password' })
-      .expect(302);
+  async function login(email: string, password = 'password') {
+    await agent.post('/login').send({ email, password }).expect(302);
   }
 
   /** The headers the Inertia client sends with a form submission. */
@@ -295,6 +300,185 @@ describe('forms', () => {
     );
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) expect(row).toContain(',critical,resolved,');
+  });
+});
+
+describe('people', () => {
+  /** The path of the signed link in the newest email to this address. */
+  const invitationTo = (email: string) => {
+    const text = mailbox.filter((m) => m.to === email).at(-1)?.text ?? '';
+    const link = text.match(/https?:\/\/\S+\/invitations\/\S+/)?.[0];
+    return link && new URL(link).pathname + new URL(link).search;
+  };
+
+  it('is for admins only', async () => {
+    const grace = browser();
+    await grace.login('grace@pagerpulse.dev');
+    expect((await grace.visit('/people')).status).toBe(403);
+  });
+
+  it('invites someone, who joins through a link that works once', async () => {
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    await ada.visit('/people');
+    const invite = (email: string) =>
+      ada.agent
+        .post('/people')
+        .set({
+          ...ada.inertia(),
+          Referer: '/people',
+          'X-Inertia-Error-Bag': 'invite',
+        })
+        .send({ name: 'Radia Perlman', email, role: 'responder' });
+
+    await invite('grace@pagerpulse.dev').expect(302);
+    expect((await ada.visit('/people')).body.props.errors).toEqual({
+      invite: { email: 'Someone with that address is already here.' },
+    });
+
+    await invite(' Radia@PagerPulse.dev ').expect(302);
+    const people = (await ada.visit('/people')).body.props.people;
+    expect(people).toContainEqual(
+      expect.objectContaining({
+        email: 'radia@pagerpulse.dev',
+        state: 'invited',
+      }),
+    );
+    const first = invitationTo('radia@pagerpulse.dev')!;
+    expect(first).toMatch(/signature=/);
+
+    // Sending again replaces the link: the first one stops working.
+    const radiaId = people.find(
+      (p: { email: string }) => p.email === 'radia@pagerpulse.dev',
+    ).id;
+    await ada.agent
+      .post(`/people/${radiaId}/resend`)
+      .set({ ...ada.inertia(), Referer: '/people' })
+      .expect(302);
+    const link = invitationTo('radia@pagerpulse.dev')!;
+    expect(link).not.toBe(first);
+
+    const radia = browser();
+    expect((await radia.visit(first)).body.props.state).toBe('invalid');
+    expect((await radia.visit(link)).body.props).toMatchObject({
+      state: 'valid',
+      name: 'Radia Perlman',
+    });
+
+    await radia.agent
+      .post(link)
+      .set({ ...radia.inertia(), Referer: link })
+      .send({ password: 'short', confirmation: 'short' })
+      .expect(302);
+    expect((await radia.visit(link)).body.props.errors).toEqual({
+      password: 'Use at least 10 characters.',
+    });
+
+    const joined = await radia.agent
+      .post(link)
+      .set({ ...radia.inertia(), Referer: link })
+      .send({ password: 'correct horse', confirmation: 'correct horse' });
+    expect(joined.status).toBe(302);
+    expect(joined.headers.location).toBe('/');
+    expect((await radia.visit('/')).body.props.auth.user.name).toBe(
+      'Radia Perlman',
+    );
+    // Used: the link no longer works.
+    expect((await browser().visit(link)).body.props.state).toBe('invalid');
+  });
+
+  it("ends a deactivated person's session at once", async () => {
+    const ken = browser();
+    await ken.login('ken@pagerpulse.dev');
+    expect((await ken.visit('/')).status).toBe(200);
+
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    await ada.visit('/people');
+    const [{ id }] = await db.query(
+      "SELECT id FROM user WHERE email = 'ken@pagerpulse.dev'",
+    );
+    // Not your own access, though.
+    const [{ id: adaId }] = await db.query(
+      "SELECT id FROM user WHERE email = 'ada@pagerpulse.dev'",
+    );
+    const self = await ada.agent
+      .post(`/people/${adaId}/deactivate`)
+      .set({ ...ada.inertia(), Referer: '/people' });
+    expect(self.status).toBe(403);
+
+    await ada.agent
+      .post(`/people/${id}/deactivate`)
+      .set({ ...ada.inertia(), Referer: '/people' })
+      .expect(302);
+    const out = await ken.agent.get('/').set('Accept', 'text/html');
+    expect(out.status).toBe(302);
+    expect(out.headers.location).toBe('/login');
+    // And can't log in again (a JSON client gets the validation error).
+    await browser()
+      .agent.post('/login')
+      .send({ email: 'ken@pagerpulse.dev', password: 'password' })
+      .expect(400);
+
+    await ada.agent
+      .post(`/people/${id}/reactivate`)
+      .set({ ...ada.inertia(), Referer: '/people' })
+      .expect(302);
+    await ken.login('ken@pagerpulse.dev');
+    expect((await ken.visit('/')).status).toBe(200);
+  });
+});
+
+describe('your account', () => {
+  it('keeps profile and password errors apart, and checks the password as you type', async () => {
+    const margaret = browser();
+    await margaret.login('margaret@pagerpulse.dev');
+    await margaret.visit('/account');
+    const put = (url: string, bag: string, body: object) =>
+      margaret.agent
+        .put(url)
+        .set({
+          ...margaret.inertia(),
+          Referer: '/account',
+          'X-Inertia-Error-Bag': bag,
+        })
+        .send(body);
+
+    // Errors are flashed for the next page only: look after each form.
+    await put('/account', 'profile', {
+      name: 'Margaret Hamilton',
+      email: 'ada@pagerpulse.dev',
+    }).expect(303);
+    expect((await margaret.visit('/account')).body.props.errors).toEqual({
+      profile: { email: 'Someone else already uses that address.' },
+    });
+    await put('/account/password', 'password', {
+      current: 'wrong',
+      password: 'a new password',
+      confirmation: 'a new password',
+    }).expect(303);
+    expect((await margaret.visit('/account')).body.props.errors).toEqual({
+      password: { current: 'That is not your current password.' },
+    });
+
+    // Precognition: only the field asked about, and the handler never runs.
+    const live = await margaret.agent
+      .put('/account/password')
+      .set({ Precognition: 'true', 'Precognition-Validate-Only': 'password' })
+      .send({ password: 'aaaaaaaaaaaa', confirmation: '' });
+    expect(live.status).toBe(422);
+    expect(live.body.errors).toEqual({
+      password: 'Not one character over and over.',
+    });
+
+    await put('/account/password', 'password', {
+      current: 'password',
+      password: 'apollo guidance',
+      confirmation: 'apollo guidance',
+    }).expect(303);
+    const again = browser();
+    await again.login('margaret@pagerpulse.dev', 'apollo guidance');
+    expect((await again.visit('/account')).status).toBe(200);
   });
 });
 
