@@ -10,8 +10,8 @@ import {
 } from '@mantine/core';
 import { IconPhoneCall } from '@tabler/icons-react';
 import { Link, usePage } from 'nestjs-mvc/react';
-import { SeverityBadge, StatusBadge } from '../components/Badges';
 import { EmptyState } from '../components/Illustration';
+import { IncidentBoard } from '../components/IncidentBoard';
 import {
   InsightsSection,
   type InsightsProps,
@@ -65,37 +65,10 @@ export default function Dashboard({
               When something breaks, declare an incident and it shows up here.
             </EmptyState>
           ) : (
-            <Stack gap="sm">
-              {active.map((incident) => (
-                <Card
-                  key={incident.id}
-                  withBorder
-                  padding="sm"
-                  component={Link}
-                  href={`/incidents/${incident.id}`}
-                  prefetch
-                >
-                  <Group justify="space-between" wrap="nowrap">
-                    <div>
-                      <Text fw={600}>
-                        <Text span c="dimmed" fw={500}>
-                          {incident.reference}
-                        </Text>{' '}
-                        {incident.title}
-                      </Text>
-                      <Text size="sm" c="dimmed">
-                        Declared {relative(incident.declaredAt)} · lead{' '}
-                        {incident.lead?.name ?? 'unassigned'}
-                      </Text>
-                    </div>
-                    <Group gap="xs" wrap="nowrap">
-                      <SeverityBadge severity={incident.severity} />
-                      <StatusBadge status={incident.status} />
-                    </Group>
-                  </Group>
-                </Card>
-              ))}
-            </Stack>
+            <IncidentBoard
+              active={active}
+              canMove={props.auth.user?.role !== 'viewer'}
+            />
           )}
         </Card>
 

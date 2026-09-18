@@ -233,6 +233,46 @@ describe('forms', () => {
   });
 });
 
+describe('incident board', () => {
+  it('moves a card with a PATCH whose answer carries only the board', async () => {
+    const [incident] = await db.query(
+      "SELECT id FROM incident WHERE status = 'investigating' LIMIT 1",
+    );
+    const board = {
+      'X-Inertia-Partial-Component': 'Dashboard',
+      'X-Inertia-Partial-Data': 'active,openIncidents',
+    };
+
+    // A viewer is refused, which is what makes the client put the card back.
+    const barbara = browser();
+    await barbara.login('barbara@pagerpulse.dev');
+    await barbara.visit('/');
+    const refused = await barbara.agent
+      .patch(`/incidents/${incident.id}`)
+      .set({ ...barbara.inertia(), ...board, Referer: '/' })
+      .send({ status: 'identified' });
+    expect(refused.status).toBe(403);
+
+    const grace = browser();
+    await grace.login('grace@pagerpulse.dev');
+    await grace.visit('/');
+    const moved = await grace.agent
+      .patch(`/incidents/${incident.id}`)
+      .set({ ...grace.inertia(), ...board, Referer: '/' })
+      .send({ status: 'identified' });
+    expect(moved.status).toBe(303);
+    expect(moved.headers.location).toBe('/');
+
+    // The redirect is followed with the same headers: just the board.
+    const page = (await grace.visit('/', board)).body;
+    expect(Object.keys(page.props)).not.toContain('summary');
+    expect(Object.keys(page.props)).not.toContain('onCall');
+    expect(
+      page.props.active.find((i: { id: number }) => i.id === incident.id),
+    ).toMatchObject({ status: 'identified' });
+  });
+});
+
 describe('search palette', () => {
   it('answers useHttp with JSON, without private incidents for those who may not see them', async () => {
     const [secret] = await db.query(
