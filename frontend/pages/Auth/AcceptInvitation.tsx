@@ -24,15 +24,15 @@ interface Props {
 const PROBLEM = {
   expired: {
     title: 'This invitation has expired',
-    body: 'Invitations work for a week. Ask whoever invited you to send it again.',
+    body: 'Invitation links work for a week. Ask whoever added you for a new one.',
   },
   invalid: {
     title: 'This invitation no longer works',
-    body: 'It was used already, or a newer one was sent. Log in, or ask for a new invitation.',
+    body: 'It was used already, or a newer link was made. Log in, or ask for a new link.',
   },
 };
 
-/** Where the link in an invitation email lands: choose a password, and you're in. */
+/** Where an invitation link lands: choose a password, and you're in. */
 export default function AcceptInvitation({
   state,
   name,

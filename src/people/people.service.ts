@@ -4,20 +4,20 @@ import { type AnyRequest, SignedUrls, ValidationException } from 'nestjs-mvc';
 import { Repository } from 'typeorm';
 import { hashPassword } from '../auth/passwords.js';
 import { type Role, User } from '../database/entities/index.js';
-import { MailService } from '../mail/mail.service.js';
 
 const WEEK = 7 * 24 * 60 * 60;
 
 /**
- * Who can use PagerPulse. Invitations are signed links bound to the moment
- * they were sent: accepting clears it and sending again replaces it, so each
- * link works once and only the newest one works at all.
+ * Who can use PagerPulse. An admin adds someone and shares the invitation
+ * link with them however they like (a chat message will do). The link is a
+ * signed URL bound to the moment it was made: accepting clears that moment
+ * and making a new link replaces it, so a link works once and only the
+ * newest one works at all. Nothing secret is stored.
  */
 @Injectable()
 export class PeopleService {
   constructor(
     private readonly links: SignedUrls,
-    private readonly mail: MailService,
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
 
@@ -44,40 +44,20 @@ export class PeopleService {
     return this.links.check(link, { bind: this.bindingOf(user) });
   }
 
-  async invite(
-    input: { name: string; email: string; role: Role },
-    by: User,
-  ): Promise<User> {
+  async invite(input: { name: string; email: string; role: Role }) {
     if (await this.users.existsBy({ email: input.email }))
       throw new ValidationException({
         email: 'Someone with that address is already here.',
       });
-    const user = await this.users.save(
+    return this.users.save(
       this.users.create({ ...input, invitedAt: new Date() }),
     );
-    await this.sendInvitation(user, by);
-    return user;
   }
 
   /** A fresh link; the old one stops working. */
-  async resend(user: User, by: User) {
+  async renew(user: User) {
     user.invitedAt = new Date();
     await this.users.update(user.id, { invitedAt: user.invitedAt });
-    await this.sendInvitation(user, by);
-  }
-
-  private sendInvitation(user: User, by: User) {
-    return this.mail.send({
-      to: user.email,
-      subject: `${by.name} invited you to PagerPulse`,
-      text: [
-        `Hi ${user.name.split(' ')[0]},`,
-        '',
-        `${by.name} added you to PagerPulse as ${user.role}. Choose a password to get started (the link works once, for a week):`,
-        '',
-        this.invitationUrl(user),
-      ].join('\n'),
-    });
   }
 
   async accept(user: User, password: string) {

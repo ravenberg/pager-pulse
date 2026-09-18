@@ -30,9 +30,6 @@ const upstream = {
   },
 };
 
-/** Every email the app sends, instead of the log. */
-const mailbox: { to: string; subject: string; text: string }[] = [];
-
 beforeAll(async () => {
   process.env.DATABASE_PATH = ':memory:';
   // Imported late: the database module reads DATABASE_PATH when it loads.
@@ -40,16 +37,11 @@ beforeAll(async () => {
   const { configureApp } = await import('../src/app.setup.js');
   const { UpstreamService } =
     await import('../src/dashboard/upstream.service.js');
-  const { MailService } = await import('../src/mail/mail.service.js');
   const module = await Test.createTestingModule({
     imports: [AppModule],
   })
     .overrideProvider(UpstreamService)
     .useValue(upstream)
-    .overrideProvider(MailService)
-    .useValue({
-      send: async (email: (typeof mailbox)[number]) => void mailbox.push(email),
-    })
     .compile();
   app = configureApp(module.createNestApplication());
   await app.init();
@@ -304,11 +296,11 @@ describe('forms', () => {
 });
 
 describe('people', () => {
-  /** The path of the signed link in the newest email to this address. */
-  const invitationTo = (email: string) => {
-    const text = mailbox.filter((m) => m.to === email).at(-1)?.text ?? '';
-    const link = text.match(/https?:\/\/\S+\/invitations\/\S+/)?.[0];
-    return link && new URL(link).pathname + new URL(link).search;
+  /** The invitation link an admin is shown once, as flash data, after a change. */
+  const flashedLink = async (admin: ReturnType<typeof browser>) => {
+    const { flash } = (await admin.visit('/people')).body;
+    const url = new URL(flash.invitation.url);
+    return url.pathname + url.search;
   };
 
   it('is for admins only', async () => {
@@ -317,7 +309,7 @@ describe('people', () => {
     expect((await grace.visit('/people')).status).toBe(403);
   });
 
-  it('invites someone, who joins through a link that works once', async () => {
+  it('adds someone, who joins through a shared link that works once', async () => {
     const ada = browser();
     await ada.login('ada@pagerpulse.dev');
     await ada.visit('/people');
@@ -337,6 +329,9 @@ describe('people', () => {
     });
 
     await invite(' Radia@PagerPulse.dev ').expect(302);
+    const first = await flashedLink(ada);
+    expect(first).toMatch(/^\/invitations\/\d+\?expires=\d+&signature=/);
+    // Flash: shown once, then gone.
     const people = (await ada.visit('/people')).body.props.people;
     expect(people).toContainEqual(
       expect.objectContaining({
@@ -344,18 +339,17 @@ describe('people', () => {
         state: 'invited',
       }),
     );
-    const first = invitationTo('radia@pagerpulse.dev')!;
-    expect(first).toMatch(/signature=/);
+    expect((await ada.visit('/people')).body.flash ?? {}).toEqual({});
 
-    // Sending again replaces the link: the first one stops working.
+    // A new link replaces the old one: the first stops working.
     const radiaId = people.find(
       (p: { email: string }) => p.email === 'radia@pagerpulse.dev',
     ).id;
     await ada.agent
-      .post(`/people/${radiaId}/resend`)
+      .post(`/people/${radiaId}/link`)
       .set({ ...ada.inertia(), Referer: '/people' })
       .expect(302);
-    const link = invitationTo('radia@pagerpulse.dev')!;
+    const link = await flashedLink(ada);
     expect(link).not.toBe(first);
 
     const radia = browser();

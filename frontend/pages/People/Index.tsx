@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Card,
+  CopyButton,
   Group,
   Menu,
   Modal,
@@ -15,14 +16,16 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconCheck,
+  IconCopy,
   IconDots,
-  IconMailForward,
+  IconLink,
   IconPlus,
   IconUserCheck,
   IconUserOff,
 } from '@tabler/icons-react';
-import { router, useForm } from 'nestjs-mvc/react';
-import { type FormEvent, useState } from 'react';
+import { router, useForm, usePage } from 'nestjs-mvc/react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader';
 import { capitalize, day } from '../../lib/format';
 import { appLayout } from '../../layouts/AppLayout';
@@ -84,9 +87,9 @@ function InviteButton() {
   return (
     <>
       <Button leftSection={<IconPlus size={16} />} onClick={open}>
-        Invite someone
+        Add someone
       </Button>
-      <Modal opened={opened} onClose={close} title="Invite someone">
+      <Modal opened={opened} onClose={close} title="Add someone">
         <form onSubmit={submit}>
           <Stack>
             <TextInput
@@ -99,7 +102,7 @@ function InviteButton() {
             <TextInput
               label="Email"
               type="email"
-              description="We email them a link to choose a password."
+              description="What they log in with. You get a link to share with them."
               value={form.data.email}
               onChange={(e) => form.setData('email', e.currentTarget.value)}
               error={form.errors.email}
@@ -120,13 +123,73 @@ function InviteButton() {
                 Cancel
               </Button>
               <Button type="submit" loading={form.processing}>
-                Send invitation
+                Add and get link
               </Button>
             </Group>
           </Stack>
         </form>
       </Modal>
     </>
+  );
+}
+
+interface Invitation {
+  name: string;
+  url: string;
+}
+
+/**
+ * The link arrives as flash data, on the one page after it was made. It is
+ * shown here once; nobody can look it up again, so a lost link means a new
+ * one.
+ */
+function ShareInvitation() {
+  const { flash } = usePage();
+  const [shown, setShown] = useState<Invitation | null>(null);
+  const invitation = flash?.invitation as Invitation | undefined;
+  useEffect(() => {
+    if (invitation) setShown(invitation);
+  }, [invitation]);
+
+  return (
+    <Modal
+      opened={!!shown}
+      onClose={() => setShown(null)}
+      title={`Share this link with ${shown?.name.split(' ')[0]}`}
+    >
+      <Stack>
+        <Text size="sm">
+          Send it in a direct message: whoever opens it chooses the password for{' '}
+          {shown?.name}. It works once, for a week.
+        </Text>
+        <TextInput
+          readOnly
+          value={shown?.url ?? ''}
+          onFocus={(e) => e.currentTarget.select()}
+          rightSection={
+            <CopyButton value={shown?.url ?? ''}>
+              {({ copied, copy }) => (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={copy}
+                  aria-label={copied ? 'Copied' : 'Copy link'}
+                >
+                  {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                </ActionIcon>
+              )}
+            </CopyButton>
+          }
+        />
+        <Text size="xs" c="dimmed">
+          We don't keep it. Lost it? Choose “New invitation link” from their
+          row; this one then stops working.
+        </Text>
+        <Group justify="flex-end">
+          <Button onClick={() => setShown(null)}>Done</Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }
 
@@ -168,10 +231,10 @@ function Actions({
       <Menu.Dropdown>
         {person.state === 'invited' && (
           <Menu.Item
-            leftSection={<IconMailForward size={16} />}
-            onClick={() => router.post(`/people/${person.id}/resend`, {}, keep)}
+            leftSection={<IconLink size={16} />}
+            onClick={() => router.post(`/people/${person.id}/link`, {}, keep)}
           >
-            Send the invitation again
+            New invitation link
           </Menu.Item>
         )}
         {person.state === 'deactivated' ? (
@@ -212,6 +275,7 @@ export default function Index({ people }: { people: PersonRow[] }) {
         }${count('deactivated') ? ` · ${count('deactivated')} deactivated` : ''}`}
         actions={<InviteButton />}
       />
+      <ShareInvitation />
 
       <Card withBorder padding={0} data-xray="people">
         <Table verticalSpacing="sm" horizontalSpacing="md">

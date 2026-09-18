@@ -55,13 +55,10 @@ export class PeopleController {
   @Post()
   async invite(
     @Body({ schema: InviteSchema }) body: z.infer<typeof InviteSchema>,
-    @CurrentUser() me: User,
   ) {
-    const user = await this.people.invite(body, me);
+    const user = await this.people.invite(body);
     this.view.refresh('people');
-    return this.view
-      .flash('success', `Invitation sent to ${user.email}.`)
-      .back();
+    return this.shareLink(user);
   }
 
   @Patch(':id')
@@ -77,14 +74,27 @@ export class PeopleController {
       .back();
   }
 
-  @Post(':id/resend')
-  async resend(@Param('id', ParseIntPipe) id: number, @CurrentUser() me: User) {
+  /** A lost link can't be shown again (it isn't stored): make a new one. */
+  @Post(':id/link')
+  async newLink(@Param('id', ParseIntPipe) id: number) {
     const user = await this.people.find(id);
     if (!user.invitedAt)
       throw new ForbiddenException(`${user.name} has already joined.`);
-    await this.people.resend(user, me);
+    await this.people.renew(user);
+    return this.shareLink(user);
+  }
+
+  /**
+   * The link goes back as flash data: on the page right after the redirect,
+   * once, for the admin to copy into a chat. It is in no prop, no database
+   * and no history entry.
+   */
+  private shareLink(user: User) {
     return this.view
-      .flash('success', `A new invitation is on its way to ${user.email}.`)
+      .flash('invitation', {
+        name: user.name,
+        url: this.people.invitationUrl(user),
+      })
       .back();
   }
 
