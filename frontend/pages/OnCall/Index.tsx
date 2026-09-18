@@ -62,7 +62,7 @@ export default function Index({ schedules, canManage }: Props) {
           )
         }
       />
-      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg" data-xray="schedules">
         {schedules.map((schedule) => {
           const [current, ...upcoming] = schedule.shifts;
           return (

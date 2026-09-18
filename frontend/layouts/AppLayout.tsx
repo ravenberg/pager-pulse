@@ -14,6 +14,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
+  IconBolt,
   IconChecklist,
   IconExternalLink,
   IconFlame,
@@ -21,6 +22,7 @@ import {
   IconLogout,
   IconPhoneCall,
   IconPlus,
+  IconStack2,
 } from '@tabler/icons-react';
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
@@ -28,12 +30,14 @@ import { ColorSchemeToggle } from '../components/ColorSchemeToggle';
 import { Providers } from '../components/Providers';
 import { capitalize } from '../lib/format';
 import type { SharedProps } from '../types';
+import { setXray } from '../xray/XrayOverlay';
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: IconLayoutDashboard, exact: true },
   { href: '/incidents', label: 'Incidents', icon: IconAlertTriangle },
   { href: '/follow-ups', label: 'Follow-ups', icon: IconChecklist },
   { href: '/on-call', label: 'On-call', icon: IconPhoneCall },
+  { href: '/showcase', label: 'Showcase', icon: IconStack2 },
 ];
 
 const initials = (name: string) =>
@@ -94,6 +98,18 @@ function Shell({ children }: { children: ReactNode }) {
                   <Menu.Label>
                     {user.name} · {capitalize(user.role)}
                   </Menu.Label>
+                  <Menu.Item
+                    leftSection={<IconBolt size={16} />}
+                    rightSection={
+                      <Text size="xs" c="dimmed">
+                        Shift+X
+                      </Text>
+                    }
+                    onClick={() => setXray(!props.__xray)}
+                  >
+                    {props.__xray ? 'Turn X-ray off' : 'Turn X-ray on'}
+                  </Menu.Item>
+                  <Menu.Divider />
                   <Menu.Item
                     leftSection={<IconLogout size={16} />}
                     onClick={() => router.post('/logout')}

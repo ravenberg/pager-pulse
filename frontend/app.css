@@ -5,3 +5,24 @@
 body {
   background: var(--mantine-color-body);
 }
+
+/* X-ray: what renders a prop, while its chip is hovered or it was just reloaded. */
+[data-xray-hit] {
+  outline: 2px dashed var(--mantine-color-cyan-5);
+  outline-offset: 4px;
+  border-radius: var(--mantine-radius-sm);
+}
+
+[data-xray-pulse] {
+  animation: xray-pulse 0.9s ease-out;
+  border-radius: var(--mantine-radius-sm);
+}
+
+@keyframes xray-pulse {
+  from {
+    box-shadow: 0 0 0 4px var(--mantine-color-cyan-4);
+  }
+  to {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}

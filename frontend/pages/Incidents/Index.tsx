@@ -106,7 +106,7 @@ export default function Index({ filters, counts, incidents }: Props) {
         />
       </Group>
 
-      <Card withBorder padding={0}>
+      <Card withBorder padding={0} data-xray="incidents">
         <InfiniteScroll
           data="incidents"
           buffer={300}

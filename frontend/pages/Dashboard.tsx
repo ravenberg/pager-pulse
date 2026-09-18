@@ -1,6 +1,7 @@
 import {
   Anchor,
   Avatar,
+  Box,
   Card,
   Group,
   SimpleGrid,
@@ -63,41 +64,49 @@ export default function Dashboard({
         description="What is on fire, who is holding the pager, and what is left to do."
       />
 
-      <Deferred
-        data="stats"
-        fallback={
-          <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} h={86} radius="md" />
-            ))}
-          </SimpleGrid>
-        }
-      >
-        {stats && (
-          <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
-            <Stat label="Incidents · 30 days" value={stats.total} />
-            <Stat
-              label="Critical · 30 days"
-              value={stats.bySeverity.critical ?? 0}
-            />
-            <Stat
-              label="Mean time to resolve"
-              value={
-                stats.mttrMinutes === null
-                  ? '—'
-                  : duration(
-                      new Date(0).toISOString(),
-                      new Date(stats.mttrMinutes * 60000).toISOString(),
-                    )
-              }
-            />
-            <Stat label="Open follow-ups" value={stats.openFollowUps} />
-          </SimpleGrid>
-        )}
-      </Deferred>
+      {/* data-xray: what X-ray outlines for a prop. */}
+      <Box data-xray="stats">
+        <Deferred
+          data="stats"
+          fallback={
+            <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} h={86} radius="md" />
+              ))}
+            </SimpleGrid>
+          }
+        >
+          {stats && (
+            <SimpleGrid cols={{ base: 2, md: 4 }} mb="xl">
+              <Stat label="Incidents · 30 days" value={stats.total} />
+              <Stat
+                label="Critical · 30 days"
+                value={stats.bySeverity.critical ?? 0}
+              />
+              <Stat
+                label="Mean time to resolve"
+                value={
+                  stats.mttrMinutes === null
+                    ? '—'
+                    : duration(
+                        new Date(0).toISOString(),
+                        new Date(stats.mttrMinutes * 60000).toISOString(),
+                      )
+                }
+              />
+              <Stat label="Open follow-ups" value={stats.openFollowUps} />
+            </SimpleGrid>
+          )}
+        </Deferred>
+      </Box>
 
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-        <Card withBorder padding="lg" style={{ gridColumn: 'span 2' }}>
+        <Card
+          withBorder
+          padding="lg"
+          style={{ gridColumn: 'span 2' }}
+          data-xray="active"
+        >
           <Title order={4} mb="md">
             Active incidents
           </Title>
@@ -143,7 +152,7 @@ export default function Dashboard({
         </Card>
 
         <Stack gap="lg">
-          <Card withBorder padding="lg">
+          <Card withBorder padding="lg" data-xray="onCall">
             <Group justify="space-between" mb="md">
               <Title order={4}>On call now</Title>
               <Anchor component={Link} href="/on-call" size="sm">
@@ -171,7 +180,7 @@ export default function Dashboard({
             </Stack>
           </Card>
 
-          <Card withBorder padding="lg">
+          <Card withBorder padding="lg" data-xray="myFollowUps">
             <Group justify="space-between" mb="md">
               <Title order={4}>Your follow-ups</Title>
               <Anchor component={Link} href="/follow-ups" size="sm">

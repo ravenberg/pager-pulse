@@ -162,7 +162,7 @@ export default function Show({ overall, services, active, past }: Props) {
         </Stack>
       )}
 
-      <Card withBorder padding="lg" radius="lg">
+      <Card withBorder padding="lg" radius="lg" data-xray="services">
         <Stack gap="lg">
           {services.map((service) => (
             <div key={service.id}>

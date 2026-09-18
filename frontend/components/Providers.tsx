@@ -3,6 +3,7 @@ import { Notifications, notifications } from '@mantine/notifications';
 import { usePage } from 'nestjs-mvc/react';
 import { type ReactNode, useEffect } from 'react';
 import { theme } from '../lib/theme';
+import { XrayOverlay, XrayShortcut } from '../xray/XrayOverlay';
 
 /** Shows each flash message once, as a toast. */
 function FlashToasts() {
@@ -26,7 +27,9 @@ export function Providers({ children }: { children: ReactNode }) {
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <Notifications position="top-right" />
       <FlashToasts />
+      <XrayShortcut />
       {children}
+      <XrayOverlay />
     </MantineProvider>
   );
 }

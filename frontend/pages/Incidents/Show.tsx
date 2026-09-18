@@ -266,7 +266,7 @@ export default function Show({
             {canRespond && (
               <PostUpdate key={incident.status} incident={incident} />
             )}
-            <Card withBorder padding="lg">
+            <Card withBorder padding="lg" data-xray="timeline">
               <Title order={4} mb="md">
                 Timeline
               </Title>
@@ -325,7 +325,7 @@ export default function Show({
 
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Stack>
-            <Card withBorder padding="lg">
+            <Card withBorder padding="lg" data-xray="incident users">
               <Stack gap="sm">
                 <Property label="Status">
                   <Select
@@ -411,7 +411,7 @@ export default function Show({
               </Stack>
             </Card>
 
-            <Card withBorder padding="lg">
+            <Card withBorder padding="lg" data-xray="followUps">
               <Title order={5} mb="sm">
                 Follow-ups
               </Title>

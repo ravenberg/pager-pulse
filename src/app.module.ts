@@ -13,6 +13,7 @@ import { OnCallModule } from './oncall/oncall.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
 import { StatusController } from './status/status.controller.js';
 import { template } from './template.js';
+import { XrayModule } from './xray/xray.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,8 @@ import { template } from './template.js';
             }
           : undefined,
     }),
+    // After MvcModule: its interceptor has to see props before they resolve.
+    XrayModule,
   ],
   controllers: [DashboardController, StatusController],
 })
