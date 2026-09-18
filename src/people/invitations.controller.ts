@@ -5,12 +5,15 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   Res,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   type AnyRequest,
   type AnyResponse,
+  ValidSignature,
   View,
   ViewService,
   requestUrl,
@@ -22,11 +25,13 @@ import { PasswordSchema } from './people.schemas.js';
 import { PeopleService } from './people.service.js';
 
 /**
- * Where the link in an invitation lands: no login, the signature is the
- * proof. It is bound to the invitation, which only this controller can look
- * up, so it checks the link itself instead of using @ValidSignature().
+ * Where an invitation link lands: no login, the signature is the proof.
+ * @ValidSignature() turns away a link that was changed or has expired (a 403,
+ * shown as the error page); the handler then makes sure it's the invitation
+ * that's still open, so a link works once.
  */
 @Public()
+@ValidSignature()
 @Controller('invitations')
 export class InvitationsController {
   constructor(
@@ -37,35 +42,42 @@ export class InvitationsController {
 
   @Get(':id')
   @View('Auth/AcceptInvitation')
-  async show(@Param('id', ParseIntPipe) id: number, @Req() req: AnyRequest) {
-    const user = await this.people.find(id);
-    const verdict = this.people.checkInvitation(req, user);
+  async show(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('v') v: string | undefined,
+    @Req() req: AnyRequest,
+  ) {
+    const user = await this.openInvitation(id, v);
     return {
-      state: verdict,
       name: user.name,
       email: user.email,
       // The form posts back to this same signed URL.
-      action: verdict === 'valid' ? requestUrl(req) : null,
+      action: requestUrl(req),
     };
   }
 
   @Post(':id')
   async accept(
     @Param('id', ParseIntPipe) id: number,
+    @Query('v') v: string | undefined,
     @Body({ schema: PasswordSchema }) body: z.infer<typeof PasswordSchema>,
-    @Req() req: AnyRequest,
     @Res({ passthrough: true }) res: AnyResponse,
   ) {
-    const user = await this.people.find(id);
-    if (this.people.checkInvitation(req, user) !== 'valid')
-      return this.view
-        .flash('error', 'That invitation no longer works. Ask for a new one.')
-        .redirect('/login');
+    const user = await this.openInvitation(id, v);
     await this.people.accept(user, body.password);
     await this.auth.signIn(res, user);
     this.view.refresh('people');
     return this.view
       .flash('success', `Welcome to PagerPulse, ${user.name.split(' ')[0]}.`)
       .redirect('/');
+  }
+
+  private async openInvitation(id: number, v: string | undefined) {
+    const user = await this.people.find(id);
+    if (!this.people.isOpenInvitation(user, v))
+      throw new ForbiddenException(
+        'This invitation has been used, or a newer link was made. Ask for a new one.',
+      );
+    return user;
   }
 }

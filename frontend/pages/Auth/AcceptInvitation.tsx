@@ -1,5 +1,4 @@
 import {
-  Anchor,
   Button,
   Paper,
   PasswordInput,
@@ -8,61 +7,28 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { Head, Link, useForm } from 'nestjs-mvc/react';
+import { Head, useForm } from 'nestjs-mvc/react';
 import type { FormEvent } from 'react';
-import { Illustration } from '../../components/Illustration';
 import { guestLayout } from '../../layouts/GuestLayout';
 
 interface Props {
-  state: 'valid' | 'expired' | 'invalid';
   name: string;
   email: string;
-  /** The signed URL to post the password to, while the link is valid. */
-  action: string | null;
+  /** The signed URL to post the password to. */
+  action: string;
 }
 
-const PROBLEM = {
-  expired: {
-    title: 'This invitation has expired',
-    body: 'Invitation links work for a week. Ask whoever added you for a new one.',
-  },
-  invalid: {
-    title: 'This invitation no longer works',
-    body: 'It was used already, or a newer link was made. Log in, or ask for a new link.',
-  },
-};
-
-/** Where an invitation link lands: choose a password, and you're in. */
-export default function AcceptInvitation({
-  state,
-  name,
-  email,
-  action,
-}: Props) {
+/**
+ * Where an invitation link lands: choose a password, and you're in. A link
+ * that was changed, has expired or was used already never gets here: the
+ * server answers it with the error page.
+ */
+export default function AcceptInvitation({ name, email, action }: Props) {
   const form = useForm({ password: '', confirmation: '' });
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (action) form.post(action);
-  }
-
-  if (state !== 'valid' || !action) {
-    const problem = PROBLEM[state === 'valid' ? 'invalid' : state];
-    return (
-      <Paper withBorder shadow="sm" p="xl" radius="lg">
-        <Head title={`${problem.title} · PagerPulse`} />
-        <Stack gap="sm">
-          <Illustration name="access-denied" width={160} />
-          <Title order={3}>{problem.title}</Title>
-          <Text size="sm" c="dimmed">
-            {problem.body}
-          </Text>
-          <Anchor component={Link} href="/login" size="sm">
-            To the login page
-          </Anchor>
-        </Stack>
-      </Paper>
-    );
+    form.post(action);
   }
 
   return (

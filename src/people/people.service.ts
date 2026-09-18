@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type AnyRequest, SignedUrls, ValidationException } from 'nestjs-mvc';
+import { SignedUrls, ValidationException } from 'nestjs-mvc';
 import { Repository } from 'typeorm';
 import { hashPassword } from '../auth/passwords.js';
 import { type Role, User } from '../database/entities/index.js';
@@ -9,10 +9,8 @@ const WEEK = 7 * 24 * 60 * 60;
 
 /**
  * Who can use PagerPulse. An admin adds someone and shares the invitation
- * link with them however they like (a chat message will do). The link is a
- * signed URL bound to the moment it was made: accepting clears that moment
- * and making a new link replaces it, so a link works once and only the
- * newest one works at all. Nothing secret is stored.
+ * link with them however they like (a chat message will do). Nothing secret
+ * is stored: the link is signed.
  */
 @Injectable()
 export class PeopleService {
@@ -27,21 +25,21 @@ export class PeopleService {
     return user;
   }
 
-  private bindingOf(user: User) {
-    return `${user.email}:${user.invitedAt?.getTime() ?? 'accepted'}`;
-  }
-
+  /**
+   * The link carries the moment the invitation was made (`v`). The signature
+   * covers it, so it can't be changed; accepting clears that moment and a new
+   * link replaces it, so a link works once and only the newest one works.
+   */
   invitationUrl(user: User) {
-    return this.links.sign(`/invitations/${user.id}`, {
-      expiresIn: WEEK,
-      bind: this.bindingOf(user),
-    });
+    return this.links.sign(
+      `/invitations/${user.id}?v=${user.invitedAt?.getTime()}`,
+      { expiresIn: WEEK },
+    );
   }
 
-  /** `valid`, `expired` or `invalid`; an accepted invitation is `invalid`. */
-  checkInvitation(link: AnyRequest | string, user: User) {
-    if (!user.invitedAt) return 'invalid' as const;
-    return this.links.check(link, { bind: this.bindingOf(user) });
+  /** Whether a link with this `v` is the invitation that's open now. */
+  isOpenInvitation(user: User, v: string | undefined) {
+    return !!user.invitedAt && v === String(user.invitedAt.getTime());
   }
 
   async invite(input: { name: string; email: string; role: Role }) {

@@ -333,7 +333,7 @@ describe('people', () => {
 
     await invite(' Radia@PagerPulse.dev ').expect(302);
     const first = await flashedLink(ada);
-    expect(first).toMatch(/^\/invitations\/\d+\?expires=\d+&signature=/);
+    expect(first).toMatch(/^\/invitations\/\d+\?v=\d+&expires=\d+&signature=/);
     // Flash: shown once, then gone.
     const people = (await ada.visit('/people')).body.props.people;
     expect(people).toContainEqual(
@@ -356,10 +356,17 @@ describe('people', () => {
     expect(link).not.toBe(first);
 
     const radia = browser();
-    expect((await radia.visit(first)).body.props.state).toBe('invalid');
+    // @ValidSignature() turns away a link that was changed…
+    const tampered = await radia.visit(link.replace(/v=\d+/, 'v=1'));
+    expect(tampered.status).toBe(403);
+    expect(tampered.body.props.reason).toBe('This link is not valid.');
+    // …and the handler one that's no longer the open invitation.
+    const replaced = await radia.visit(first);
+    expect(replaced.status).toBe(403);
+    expect(replaced.body.props.reason).toMatch(/newer link was made/);
     expect((await radia.visit(link)).body.props).toMatchObject({
-      state: 'valid',
       name: 'Radia Perlman',
+      email: 'radia@pagerpulse.dev',
     });
 
     await radia.agent
@@ -381,7 +388,7 @@ describe('people', () => {
       'Radia Perlman',
     );
     // Used: the link no longer works.
-    expect((await browser().visit(link)).body.props.state).toBe('invalid');
+    expect((await browser().visit(link)).status).toBe(403);
   });
 
   it("ends a deactivated person's session at once", async () => {
