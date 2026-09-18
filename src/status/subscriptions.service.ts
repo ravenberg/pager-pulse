@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type AnyRequest, type SignatureVerdict, SignedUrls } from 'nestjs-mvc';
+import { type AnyRequest, SignedUrls } from 'nestjs-mvc';
 import { Not, IsNull, Repository } from 'typeorm';
 import { type Incident, StatusSubscriber } from '../database/entities/index.js';
-import { MailboxService } from '../mailbox/mailbox.service.js';
+import { appUrl } from '../common/app-url.js';
+import { MailService } from '../mail/mail.service.js';
 
 const DAY = 24 * 60 * 60;
 
@@ -15,7 +16,7 @@ const DAY = 24 * 60 * 60;
 export class SubscriptionsService {
   constructor(
     private readonly links: SignedUrls,
-    private readonly mailbox: MailboxService,
+    private readonly mail: MailService,
     @InjectRepository(StatusSubscriber)
     private readonly subscribers: Repository<StatusSubscriber>,
   ) {}
@@ -51,10 +52,8 @@ export class SubscriptionsService {
   }
 
   /** Why a confirmation link is not accepted, or `valid`. */
-  checkConfirmation(req: AnyRequest, subscriber: StatusSubscriber) {
-    return this.links.check(req, {
-      bind: this.bindingOf(subscriber),
-    }) as SignatureVerdict;
+  checkConfirmation(link: AnyRequest | string, subscriber: StatusSubscriber) {
+    return this.links.check(link, { bind: this.bindingOf(subscriber) });
   }
 
   async subscribe(email: string) {
@@ -62,11 +61,16 @@ export class SubscriptionsService {
       (await this.subscribers.findOneBy({ email })) ??
       (await this.subscribers.save(this.subscribers.create({ email })));
     if (subscriber.confirmedAt) return subscriber;
-    await this.mailbox.send({
+    await this.mail.send({
       to: email,
       subject: 'Confirm your PagerPulse status updates',
-      body: 'Someone, hopefully you, asked for an email whenever PagerPulse posts a status update. Confirm within a day; the link works once.',
-      links: [{ label: 'Confirm', url: this.confirmUrl(subscriber) }],
+      text: [
+        'Someone, hopefully you, asked for an email whenever PagerPulse posts a status update.',
+        '',
+        `Confirm within a day (the link works once): ${this.confirmUrl(subscriber)}`,
+        '',
+        'If it was not you, ignore this email.',
+      ].join('\n'),
     });
     return subscriber;
   }
@@ -86,17 +90,16 @@ export class SubscriptionsService {
       confirmedAt: Not(IsNull()),
     });
     for (const subscriber of subscribers) {
-      await this.mailbox.send({
+      await this.mail.send({
         to: subscriber.email,
         subject: `[PagerPulse status] ${incident.title}`,
-        body: update,
-        links: [
-          {
-            label: 'View on the status page',
-            url: `/status/incidents/${incident.id}`,
-          },
-          { label: 'Unsubscribe', url: this.unsubscribeUrl(subscriber) },
-        ],
+        text: [
+          update,
+          '',
+          `Follow it on the status page: ${appUrl()}/status/incidents/${incident.id}`,
+          '',
+          `Unsubscribe: ${this.unsubscribeUrl(subscriber)}`,
+        ].join('\n'),
       });
     }
   }

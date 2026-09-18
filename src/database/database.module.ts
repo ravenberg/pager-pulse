@@ -8,7 +8,6 @@ import {
   EscalationPath,
   FollowUp,
   Incident,
-  OutboxEmail,
   PostMortem,
   Schedule,
   ScheduleMember,
@@ -34,7 +33,6 @@ const entities = [
   EscalationPath,
   Escalation,
   StatusSubscriber,
-  OutboxEmail,
 ];
 
 @Global()

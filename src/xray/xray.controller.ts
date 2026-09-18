@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
-import { type AnyResponse, View, ViewService } from 'nestjs-mvc';
+import { Body, Controller, Post, Res } from '@nestjs/common';
+import { type AnyResponse, ViewService } from 'nestjs-mvc';
 import { z } from 'zod';
 import { Public } from '../auth/public.decorator.js';
 import { XrayService } from './xray.service.js';
@@ -22,12 +22,5 @@ export class XrayController {
   ) {
     this.xray.remember(res, body.enabled);
     return this.view.back();
-  }
-
-  /** Every route and the nestjs-mvc features it uses. */
-  @Get('showcase')
-  @View('Showcase')
-  showcase() {
-    return { routes: this.xray.catalog() };
   }
 }

@@ -15,7 +15,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { IconBolt, IconTrash, IconX } from '@tabler/icons-react';
-import { Link, router, usePage } from 'nestjs-mvc/react';
+import { router, usePage } from 'nestjs-mvc/react';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { type Evidence, ordered, pageFeatures, requestsOnPage } from './detect';
 import { KITCHEN_SINK } from './features';
@@ -441,9 +441,6 @@ export function XrayOverlay() {
 
         <Group justify="space-between" mt="sm">
           <Group gap="md">
-            <Anchor component={Link} href="/showcase" size="xs">
-              All routes
-            </Anchor>
             <Anchor href={KITCHEN_SINK} target="_blank" size="xs">
               Kitchen sink
             </Anchor>

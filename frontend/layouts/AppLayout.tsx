@@ -21,10 +21,8 @@ import {
   IconFlame,
   IconLayoutDashboard,
   IconLogout,
-  IconMail,
   IconPhoneCall,
   IconPlus,
-  IconStack2,
 } from '@tabler/icons-react';
 import { Link, router, usePage } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
@@ -41,7 +39,6 @@ const NAV = [
   { href: '/alerts', label: 'Alerts', icon: IconBellRinging },
   { href: '/follow-ups', label: 'Follow-ups', icon: IconChecklist },
   { href: '/on-call', label: 'On-call', icon: IconPhoneCall },
-  { href: '/showcase', label: 'Showcase', icon: IconStack2 },
 ];
 
 const initials = (name: string) =>
@@ -158,16 +155,6 @@ function Shell({ children }: { children: ReactNode }) {
             />
           ))}
         </Stack>
-        {user?.role === 'admin' && (
-          <NavLink
-            component={Link}
-            href="/mailbox"
-            onClick={close}
-            label="Mailbox"
-            active={path.startsWith('/mailbox')}
-            leftSection={<IconMail size={18} stroke={1.6} />}
-          />
-        )}
         <NavLink
           href="/status"
           target="_blank"

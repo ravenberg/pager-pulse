@@ -47,7 +47,7 @@ export class XrayInterceptor implements NestInterceptor {
         finalize(() => {
           const flash = requestState(req).pending.flash;
           if (flash && Object.keys(flash).length > 0)
-            this.xray.observe(route.handler, { runtime: 'flash' });
+            this.xray.observe(route.handler, 'flash');
         }),
       );
     }
@@ -64,10 +64,9 @@ export class XrayInterceptor implements NestInterceptor {
           .filter((prop) => prop.kind !== 'eager' && prop.kind !== 'lazy')
           .map((prop) => ({ ...prop, detail: 'shared' }));
         const described = [...this.xray.describeProps(raw), ...shared];
-        this.xray.observe(route.handler, { props: described });
         // Set by the handler at runtime, where @EncryptHistory() is static.
         if (requestState(req).encryptHistory)
-          this.xray.observe(route.handler, { runtime: 'encrypt-history' });
+          this.xray.observe(route.handler, 'encrypt-history');
         if (!enabled) return props;
 
         const handlerMs = performance.now() - started;

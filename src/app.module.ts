@@ -13,7 +13,8 @@ import { IncidentsModule } from './incidents/incidents.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
-import { MailboxModule } from './mailbox/mailbox.module.js';
+import { appUrl } from './common/app-url.js';
+import { MailModule } from './mail/mail.module.js';
 import { StatusModule } from './status/status.module.js';
 import { template } from './template.js';
 import { XrayModule } from './xray/xray.module.js';
@@ -21,7 +22,7 @@ import { XrayModule } from './xray/xray.module.js';
 /**
  * What nestjs-mvc signs with: flash cookies, signed URLs. APP_KEY in
  * production; a fixed key in development, so a restart of `nest start
- * --watch` does not break the links in the demo mailbox.
+ * --watch` does not break the links in emails already sent.
  */
 function signingKeys() {
   if (process.env.APP_KEY || process.env.NODE_ENV === 'production')
@@ -32,7 +33,7 @@ function signingKeys() {
 @Module({
   imports: [
     DatabaseModule,
-    MailboxModule,
+    MailModule,
     StatusModule,
     AuthModule,
     IncidentsModule,
@@ -42,6 +43,8 @@ function signingKeys() {
     MvcModule.forRoot({
       template,
       keys: signingKeys(),
+      // Signed URLs come out absolute, as links in emails must be.
+      url: appUrl(),
       version: process.env.GIT_COMMIT,
       // Vite runs inside this process in development; production resolves the
       // hashed assets from the build manifest.

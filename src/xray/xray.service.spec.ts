@@ -84,26 +84,28 @@ describe('XrayService', () => {
   });
 
   it('reads routes from their decorators', () => {
-    const routes = service().catalog();
-    const by = (handler: string) =>
-      routes.find((route) => route.handler === `ThingsController#${handler}`);
+    const xray = service();
+    const route = (handler: keyof ThingsController) =>
+      xray.describeRoute(
+        ThingsController,
+        ThingsController.prototype[handler] as (...args: unknown[]) => unknown,
+      );
 
-    expect(by('show')).toMatchObject({
+    expect(route('show')).toMatchObject({
       method: 'GET',
       path: '/things/:id',
       view: 'Things/Show',
       ssr: true,
       encryptHistory: true,
       public: false,
-      props: null,
     });
-    expect(by('store')).toMatchObject({
+    expect(route('store')).toMatchObject({
       method: 'POST',
       path: '/things',
       roles: ['admin', 'responder'],
       schema: ['title', 'severity'],
     });
-    expect(by('hook')).toMatchObject({
+    expect(route('hook')).toMatchObject({
       public: true,
       skipCsrf: true,
       signedUrl: true,
@@ -118,25 +120,16 @@ describe('XrayService', () => {
     expect(xray.routeFor('GET', '/things/12/more')).toBeUndefined();
   });
 
-  it('remembers what it saw a route do', () => {
+  it('remembers what it saw a route do, for the forms of a page', () => {
     const xray = service();
-    xray.observe('ThingsController#show', {
-      props: [{ path: 'stats', kind: 'defer' }],
-    });
-    xray.observe('ThingsController#store', { runtime: 'flash' });
-    xray.observe('ThingsController#store', { runtime: 'precognition' });
+    xray.observe('ThingsController#store', 'flash');
+    xray.observe('ThingsController#store', 'precognition');
 
-    const routes = xray.catalog();
-    expect(routes.find((r) => r.handler.endsWith('#show'))?.props).toEqual([
-      { path: 'stats', kind: 'defer' },
-    ]);
-    expect(routes.find((r) => r.handler.endsWith('#store'))?.runtime).toEqual([
-      'flash',
-      'precognition',
-    ]);
-    expect(xray.siblings(ThingsController).map((r) => r.handler)).toEqual([
-      'ThingsController#store',
-      'ThingsController#hook',
+    expect(
+      xray.siblings(ThingsController).map((r) => [r.handler, r.runtime]),
+    ).toEqual([
+      ['ThingsController#store', ['flash', 'precognition']],
+      ['ThingsController#hook', []],
     ]);
   });
 });

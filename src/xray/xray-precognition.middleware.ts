@@ -19,7 +19,7 @@ export class XrayPrecognitionMiddleware implements NestMiddleware {
   use(req: AnyRequest, _res: unknown, next: () => void) {
     if (isPrecognitive(req)) {
       const handler = this.xray.routeFor(requestMethod(req), requestPath(req));
-      if (handler) this.xray.observe(handler, { runtime: 'precognition' });
+      if (handler) this.xray.observe(handler, 'precognition');
     }
     next();
   }

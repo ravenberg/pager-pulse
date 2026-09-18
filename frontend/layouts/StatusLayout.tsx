@@ -1,4 +1,4 @@
-import { Anchor, Box, Container, Divider, Group, Text } from '@mantine/core';
+import { Anchor, Box, Container, Group, Text } from '@mantine/core';
 import { IconFlame } from '@tabler/icons-react';
 import { Link } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
@@ -27,11 +27,6 @@ export function StatusLayout({ children }: { children: ReactNode }) {
             <SubscribeButton />
           </Group>
           {children}
-          <Divider my="xl" />
-          <Text c="dimmed" size="xs" ta="center">
-            Rendered on the server with <code>@Ssr()</code> · powered by NestJS
-            MVC
-          </Text>
         </Container>
       </Box>
     </Providers>

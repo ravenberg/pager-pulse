@@ -37,8 +37,6 @@ export interface Feature {
   blurb: string;
   group: FeatureGroup;
   color: string;
-  /** Where in the roadmap it gets a page, while nothing uses it yet. */
-  planned?: string;
 }
 
 export const FEATURES: Record<FeatureKey, Feature> = {
@@ -151,7 +149,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'Resolved once and remembered by the client across visits; the server skips the closure when the client says it already has it.',
     group: 'Props',
     color: 'blue',
-    planned: 'Phase 6 · shared lookups',
   },
   validation: {
     title: 'Validation → errors',
@@ -216,7 +213,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       'The next page is fetched on hover, so the click shows it instantly from the cache.',
     group: 'Client',
     color: 'cyan',
-    planned: 'Phase 6 · incident list',
   },
   precognition: {
     title: 'Live validation',

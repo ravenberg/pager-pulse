@@ -25,7 +25,7 @@ const add = (found: Found, key: FeatureKey, evidence?: Evidence) => {
 const routeLabel = (route: RouteInfo) => `${route.method} ${route.path}`;
 
 /** What the server can tell about a route: its decorators and its props. */
-export function routeFeatures(
+function routeFeatures(
   route: RouteInfo,
   props: PropInfo[] | null,
   runtime: RuntimeFeature[],

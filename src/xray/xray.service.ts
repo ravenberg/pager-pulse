@@ -75,13 +75,6 @@ export interface RouteInfo {
 /** Features only visible while a route runs, not in its metadata. */
 export type RuntimeFeature = 'flash' | 'precognition' | 'encrypt-history';
 
-/** What X-ray has seen a route do since the process started. */
-interface Observation {
-  props: PropInfo[] | null;
-  runtime: Set<RuntimeFeature>;
-  lastSeen: number;
-}
-
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' &&
   value !== null &&
@@ -94,7 +87,8 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 @Injectable()
 export class XrayService implements OnApplicationBootstrap {
   private routes: (RouteInfo & { key: string; pattern: RegExp })[] = [];
-  private readonly observed = new Map<string, Observation>();
+  /** What X-ray has seen each route do since the process started. */
+  private readonly observed = new Map<string, Set<RuntimeFeature>>();
 
   constructor(
     private readonly discovery: DiscoveryService,
@@ -245,18 +239,9 @@ export class XrayService implements OnApplicationBootstrap {
     });
   }
 
-  observe(
-    handler: string,
-    update: { props?: PropInfo[]; runtime?: RuntimeFeature },
-  ) {
-    const previous = this.observed.get(handler);
-    const runtime = new Set(previous?.runtime);
-    if (update.runtime) runtime.add(update.runtime);
-    this.observed.set(handler, {
-      props: update.props ?? previous?.props ?? null,
-      runtime,
-      lastSeen: Date.now(),
-    });
+  observe(handler: string, feature: RuntimeFeature) {
+    const seen = this.observed.get(handler) ?? new Set();
+    this.observed.set(handler, seen.add(feature));
   }
 
   /** The route a method and path belong to, for requests that never reach a handler. */
@@ -266,19 +251,6 @@ export class XrayService implements OnApplicationBootstrap {
     )?.handler;
   }
 
-  /** Every route with what its metadata says and what X-ray saw it do. */
-  catalog() {
-    return this.routes.map(({ key, pattern: _pattern, ...route }) => {
-      const seen = this.observed.get(key);
-      return {
-        ...route,
-        props: seen?.props ?? null,
-        runtime: [...(seen?.runtime ?? [])],
-        lastSeen: seen ? new Date(seen.lastSeen).toISOString() : null,
-      };
-    });
-  }
-
   /** The routes of one controller, for "the forms on this page post to…". */
   siblings(controller: Type) {
     const prefix = `${controller.name}#`;
@@ -286,7 +258,7 @@ export class XrayService implements OnApplicationBootstrap {
       .filter((route) => route.key.startsWith(prefix) && !route.view)
       .map(({ key: _key, pattern: _pattern, ...route }) => ({
         ...route,
-        runtime: [...(this.observed.get(route.handler)?.runtime ?? [])],
+        runtime: [...(this.observed.get(route.handler) ?? [])],
       }));
   }
 
