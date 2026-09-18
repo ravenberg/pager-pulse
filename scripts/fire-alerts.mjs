@@ -7,7 +7,7 @@
 // Tokens come straight from the SQLite database, so there is nothing to copy.
 import Database from 'better-sqlite3';
 
-const url = process.env.APP_URL ?? 'http://localhost:3000';
+const url = `http://localhost:${process.env.PORT ?? 3000}`;
 const db = new Database(process.env.DATABASE_PATH ?? 'pager-pulse.sqlite', {
   readonly: true,
 });

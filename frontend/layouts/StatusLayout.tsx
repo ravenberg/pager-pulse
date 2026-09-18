@@ -3,7 +3,6 @@ import { IconFlame } from '@tabler/icons-react';
 import { Link } from 'nestjs-mvc/react';
 import type { ReactNode } from 'react';
 import { Providers } from '../components/Providers';
-import { SubscribeButton } from '../components/SubscribeButton';
 
 export function StatusLayout({ children }: { children: ReactNode }) {
   return (
@@ -24,7 +23,6 @@ export function StatusLayout({ children }: { children: ReactNode }) {
                 </Text>
               </Group>
             </Anchor>
-            <SubscribeButton />
           </Group>
           {children}
         </Container>

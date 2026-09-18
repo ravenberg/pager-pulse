@@ -1,7 +1,7 @@
 # PagerPulse
 
 A demo app for [nestjs-mvc](https://nestjs-mvc.ravenberg.dev), the package that
-lets NestJS controllers return React or Vue pages instead of JSON.
+lets NestJS controllers return React or Vue pages as their views.
 
 PagerPulse is a small incident management tool: declare incidents, page
 whoever is on call, write post-mortems, keep a public status page. It's here so
@@ -68,7 +68,7 @@ To find a particular feature:
 | JSON for a search box (`useHttp`) | `src/search/search.controller.ts`, `frontend/components/CommandPalette.tsx` |
 | File uploads and downloads | `src/attachments/` |
 | Server rendering, for guests only | `src/status/status.controller.ts` |
-| Signed links: email confirmation, invitations | `src/status/subscriptions.service.ts`, `src/people/` |
+| Signed links: invitations that work once | `src/people/` |
 | A webhook without CSRF protection | `src/alerts/alert-ingest.controller.ts` |
 | Leaving for another site (`view.location()`) | `src/incidents/incidents.controller.ts` (`call`) |
 | Testing pages end to end | `test/app.e2e-spec.ts` |
@@ -99,7 +99,7 @@ You need Node, pm2 (`npm install -g pm2`), Caddy, and `build-essential` and
 ```sh
 git clone https://github.com/ravenberg/pager-pulse.git ~/pager-pulse
 cd ~/pager-pulse
-cp .env.example .env   # fill in APP_KEY, JWT_SECRET and APP_URL
+cp .env.example .env   # fill in APP_KEY
 ops/deploy.sh
 pm2 startup            # once, so pm2 starts again after a reboot
 ```
@@ -125,9 +125,6 @@ The settings in `.env`:
 
 | Variable | What it's for |
 |---|---|
-| `APP_KEY` | Signs cookies, flash messages and links. Required in production. |
-| `JWT_SECRET` | Signs the login token. Required in production. |
-| `APP_URL` | The public address, for links in emails and invitations. |
+| `APP_KEY` | Signs cookies, links and the login token. Required in production. |
 | `PORT` | The port the app listens on. |
 | `DATABASE_PATH`, `STORAGE_PATH` | Where the database and uploads are kept. |
-| `MAIL_URL`, `MAIL_FROM` | SMTP for status emails. Without it, emails go to the log. |

@@ -100,7 +100,7 @@ describe('pages', () => {
       .expect(200);
     // Text from the React tree: only there when it was rendered server-side.
     expect(response.text).toContain('PagerPulse status');
-    expect(response.text).toContain('Subscribe to updates');
+    expect(response.text).toContain('Past incidents');
   });
 
   it('renders a public incident on the server for guests only (disableSsr)', async () => {
@@ -302,8 +302,8 @@ describe('people', () => {
   /** The invitation link an admin is shown once, as flash data, after a change. */
   const flashedLink = async (admin: ReturnType<typeof browser>) => {
     const { flash } = (await admin.visit('/people')).body;
-    const url = new URL(flash.invitation.url);
-    return url.pathname + url.search;
+    // A path: the page puts the browser's own address in front of it.
+    return flash.invitation.url as string;
   };
 
   it('is for admins only', async () => {

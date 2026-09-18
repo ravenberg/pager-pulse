@@ -1,25 +1,14 @@
 import {
-  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
   ParseIntPipe,
-  Post,
   Query,
-  Req,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  type AnyRequest,
-  Ssr,
-  ValidSignature,
-  View,
-  ViewService,
-  requestUrl,
-} from 'nestjs-mvc';
+import { Ssr, View, ViewService } from 'nestjs-mvc';
 import { Between, LessThan, MoreThan, Not, Repository } from 'typeorm';
-import { z } from 'zod';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import {
@@ -31,15 +20,6 @@ import {
   type User,
 } from '../database/entities/index.js';
 import { reference } from '../incidents/serializers.js';
-import { SubscriptionsService } from './subscriptions.service.js';
-
-const SubscribeSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .max(200)
-    .pipe(z.email('Enter an email address we can write to.')),
-});
 
 const DAY = 24 * 60 * 60 * 1000;
 const HISTORY_DAYS = 30;
@@ -81,7 +61,6 @@ export class StatusController {
     private readonly timeline: Repository<TimelineEntry>,
     @InjectRepository(PostMortem)
     private readonly postMortems: Repository<PostMortem>,
-    private readonly subscriptions: SubscriptionsService,
     private readonly view: ViewService,
   ) {}
 
@@ -203,70 +182,6 @@ export class StatusController {
       next: end.getTime() <= Date.now() ? shift(1) : null,
       days,
     };
-  }
-
-  @Post('subscribe')
-  async subscribe(
-    @Body({ schema: SubscribeSchema }) body: z.infer<typeof SubscribeSchema>,
-  ) {
-    const subscriber = await this.subscriptions.subscribe(body.email);
-    return this.view
-      .flash(
-        'success',
-        subscriber.confirmedAt
-          ? 'You are already subscribed.'
-          : 'Almost there: confirm with the link we just emailed you.',
-      )
-      .back('/status');
-  }
-
-  /**
-   * The link from the confirmation email. Its signature is bound to the
-   * subscriber's confirmation state, which only this handler can work out,
-   * so it checks the link itself instead of using @ValidSignature().
-   */
-  @Get('subscriptions/:id/confirm')
-  @View('Status/Subscription')
-  async confirm(@Param('id', ParseIntPipe) id: number, @Req() req: AnyRequest) {
-    const subscriber = await this.subscriptions.find(id);
-    const verdict = this.subscriptions.checkConfirmation(req, subscriber);
-    if (verdict !== 'valid')
-      return {
-        state: subscriber.confirmedAt ? 'already' : verdict,
-        email: subscriber.email,
-      };
-    await this.subscriptions.confirm(subscriber);
-    return {
-      state: 'confirmed',
-      email: subscriber.email,
-      unsubscribeUrl: this.subscriptions.unsubscribeUrl(subscriber),
-    };
-  }
-
-  /** The link at the bottom of every email: signed, so no login is needed. */
-  @Get('subscriptions/:id/unsubscribe')
-  @ValidSignature()
-  @View('Status/Subscription')
-  async unsubscribePage(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: AnyRequest,
-  ) {
-    const subscriber = await this.subscriptions.find(id);
-    return {
-      state: 'unsubscribe',
-      email: subscriber.email,
-      // The form posts back to the same signed URL.
-      action: requestUrl(req),
-    };
-  }
-
-  @Post('subscriptions/:id/unsubscribe')
-  @ValidSignature()
-  async unsubscribe(@Param('id', ParseIntPipe) id: number) {
-    await this.subscriptions.unsubscribe(await this.subscriptions.find(id));
-    return this.view
-      .flash('success', 'Unsubscribed. No more emails from us.')
-      .redirect('/status');
   }
 
   @Get('incidents/:id')

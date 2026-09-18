@@ -150,6 +150,9 @@ function ShareInvitation() {
   useEffect(() => {
     if (invitation) setShown(invitation);
   }, [invitation]);
+  // The server signs the path; the address in front is whatever this app
+  // runs on, as the browser sees it.
+  const link = shown ? new URL(shown.url, window.location.origin).href : '';
 
   return (
     <Modal
@@ -164,10 +167,10 @@ function ShareInvitation() {
         </Text>
         <TextInput
           readOnly
-          value={shown?.url ?? ''}
+          value={link}
           onFocus={(e) => e.currentTarget.select()}
           rightSection={
-            <CopyButton value={shown?.url ?? ''}>
+            <CopyButton value={link}>
               {({ copied, copy }) => (
                 <ActionIcon
                   variant="subtle"

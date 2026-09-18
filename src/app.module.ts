@@ -17,8 +17,6 @@ import { OnCallModule } from './oncall/oncall.module.js';
 import { PeopleModule } from './people/people.module.js';
 import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
-import { appUrl } from './common/app-url.js';
-import { MailModule } from './mail/mail.module.js';
 import { StatusModule } from './status/status.module.js';
 import { template } from './template.js';
 import { XrayModule } from './xray/xray.module.js';
@@ -37,7 +35,6 @@ function signingKeys() {
 @Module({
   imports: [
     DatabaseModule,
-    MailModule,
     StatusModule,
     AuthModule,
     IncidentsModule,
@@ -52,8 +49,6 @@ function signingKeys() {
     MvcModule.forRoot({
       template,
       keys: signingKeys(),
-      // Signed URLs come out absolute, as links in emails must be.
-      url: appUrl(),
       version: process.env.GIT_COMMIT,
       // Vite runs inside this process in development; production resolves the
       // hashed assets from the build manifest.

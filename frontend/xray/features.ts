@@ -210,7 +210,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
     title: 'Signed URLs',
     code: '@ValidSignature()',
     blurb:
-      'Links that carry their own proof and expiry, like the unsubscribe link in every status email: no login, no table of tokens. Bound to a value (bind), a link dies when that value changes, which makes the confirmation link single-use.',
+      'Links that carry their own proof and expiry, like an invitation link: no login, no table of tokens. Bound to a value (bind), a link dies when that value changes, which makes it single-use.',
     group: 'Security',
     color: 'grape',
     docs: '/docs/signed-urls',

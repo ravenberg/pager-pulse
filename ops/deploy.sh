@@ -10,7 +10,7 @@ APP="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP"
 
 if [ ! -f .env ]; then
-  echo "Missing $APP/.env. Copy .env.example to .env and fill in APP_KEY and JWT_SECRET first." >&2
+  echo "Missing $APP/.env. Copy .env.example to .env and fill in APP_KEY first." >&2
   exit 1
 fi
 
