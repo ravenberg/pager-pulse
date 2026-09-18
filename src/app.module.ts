@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module.js';
 import type { User } from './database/entities/index.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
 import { OnCallModule } from './oncall/oncall.module.js';
+import { PostMortemsModule } from './post-mortems/post-mortems.module.js';
 import { SharedDataMiddleware } from './shared-data.middleware.js';
 import { StatusController } from './status/status.controller.js';
 import { template } from './template.js';
@@ -22,6 +23,7 @@ import { XrayModule } from './xray/xray.module.js';
     AuthModule,
     IncidentsModule,
     AlertsModule,
+    PostMortemsModule,
     OnCallModule,
     MvcModule.forRoot({
       template,

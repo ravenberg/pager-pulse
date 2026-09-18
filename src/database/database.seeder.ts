@@ -9,6 +9,7 @@ import {
   FollowUp,
   Incident,
   type IncidentStatus,
+  PostMortem,
   Schedule,
   ScheduleMember,
   Service,
@@ -72,6 +73,8 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     if ((await this.db.getRepository(User).count()) === 0) await this.seed();
     if ((await this.db.getRepository(AlertSource).count()) === 0)
       await this.seedAlerts();
+    if ((await this.db.getRepository(PostMortem).count()) === 0)
+      await this.seedPostIncident();
   }
 
   private async seed() {
@@ -335,5 +338,56 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
       .getRepository(Alert)
       .save(alerts.map((alert) => ({ labels: {}, ...alert })));
     this.logger.log('Seeded alert sources: see /alerts/sources for tokens.');
+  }
+
+  /**
+   * Post-mortems for the latest resolved incidents, one at each stage, and a
+   * private incident: so post-incident and privacy have something to show.
+   */
+  private async seedPostIncident() {
+    const resolved = await this.db.getRepository(Incident).find({
+      where: { status: 'resolved' },
+      relations: { lead: true },
+      order: { resolvedAt: 'DESC' },
+      take: 4,
+    });
+    if (resolved.length < 4) return;
+    const [closed, inReview, draft, secret] = resolved;
+
+    const writeUp = (incident: Incident) => ({
+      summary: `“${incident.title}” lasted a little over an hour. Monitoring caught it before most customers noticed, and a rollback restored service.`,
+      impact: 'Around 4% of requests failed for 70 minutes; no data was lost.',
+      rootCause:
+        'A configuration change removed a connection limit, and the pool exhausted under peak traffic.',
+      lessons:
+        'Config changes get the same canary rollout as code. The pool size alert fires at 80%, not 100%.',
+    });
+    await this.db.getRepository(PostMortem).save([
+      {
+        incident: closed,
+        author: closed.lead,
+        status: 'published',
+        publishedAt: new Date(),
+        ...writeUp(closed),
+      },
+      {
+        incident: inReview,
+        author: inReview.lead,
+        status: 'in_review',
+        ...writeUp(inReview),
+      },
+      {
+        incident: draft,
+        author: draft.lead,
+        status: 'draft',
+        summary: 'Replica lag grew until reads timed out.',
+      },
+    ]);
+    await this.db
+      .getRepository(Incident)
+      .update(secret.id, { isPrivate: true, isPublic: false });
+    this.logger.log(
+      `Seeded post-mortems; INC-${secret.id} is private to admins, its reporter and its lead.`,
+    );
   }
 }

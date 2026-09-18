@@ -14,6 +14,7 @@ export const DeclareSchema = z.object({
   serviceIds: z.array(z.coerce.number().int().positive()).default([]),
   leadId: userId.default(null),
   isPublic: z.boolean().default(true),
+  isPrivate: z.boolean().default(false),
 });
 
 export const ChangeSchema = z.object({

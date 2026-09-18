@@ -76,12 +76,11 @@ export const FEATURES: Record<FeatureKey, Feature> = {
   },
   'encrypt-history': {
     title: 'History encryption',
-    code: '@EncryptHistory()',
+    code: 'this.view.encryptHistory()',
     blurb:
-      'The page state saved in browser history is encrypted, so after a logout the back button cannot show it again.',
+      'The page state saved in browser history is encrypted, per route with @EncryptHistory() or per request, like here for private incidents. When the user changes, nestjs-mvc clears history, so the back button cannot bring it back.',
     group: 'Security',
     color: 'grape',
-    planned: 'Phase 3 · private incidents',
   },
   lazy: {
     title: 'Lazy prop',
@@ -228,7 +227,6 @@ export const FEATURES: Record<FeatureKey, Feature> = {
       "Precognition: the form asks the server's own validation pipe about a field as you type, without running the handler.",
     group: 'Forms',
     color: 'orange',
-    planned: 'Phase 3 · post-mortem form',
   },
 };
 

@@ -29,6 +29,8 @@ import {
   IconChevronRight,
   IconClock,
   IconFlame,
+  IconLock,
+  IconNotebook,
   IconMessage,
   IconSpeakerphone,
   IconUserStar,
@@ -52,7 +54,14 @@ import type {
 
 interface Entry {
   id: number;
-  kind: 'declared' | 'update' | 'status' | 'severity' | 'lead' | 'follow_up';
+  kind:
+    | 'declared'
+    | 'update'
+    | 'status'
+    | 'severity'
+    | 'lead'
+    | 'follow_up'
+    | 'post_mortem';
   body: string;
   isPublic: boolean;
   author: Person | null;
@@ -67,6 +76,7 @@ interface Props {
     summary: string;
     isPublic: boolean;
     reporter: Person | null;
+    postMortem: { status: PostMortemStatus; publishedAt: string | null } | null;
   };
   counts: Record<Tab, number>;
   // Only the active tab's list arrives with the page; the others are
@@ -86,6 +96,7 @@ const KIND_ICON = {
   severity: IconArrowsExchange,
   lead: IconUserStar,
   follow_up: IconChecklist,
+  post_mortem: IconNotebook,
 };
 
 const STATUSES: IncidentStatus[] = [
@@ -98,56 +109,103 @@ const SEVERITIES: Severity[] = ['critical', 'major', 'minor'];
 const options = (values: string[]) =>
   values.map((value) => ({ value, label: capitalize(value) }));
 
-/** The lifecycle as incident.io shows it: where the incident is, one click to move on. */
+type PostMortemStatus = 'draft' | 'in_review' | 'published';
+
+/** After resolved comes post-incident, driven by the post-mortem. */
+const POST_INCIDENT = ['documenting', 'reviewing', 'closed'] as const;
+const POST_INCIDENT_STEP: Record<PostMortemStatus, number> = {
+  draft: 0,
+  in_review: 1,
+  published: 2,
+};
+
+/**
+ * The lifecycle as incident.io shows it. The live steps change the status on
+ * a click; once resolved, the post-incident steps follow the post-mortem and
+ * lead to it.
+ */
 function Lifecycle({
+  incidentId,
   status,
+  postMortem,
   canRespond,
   onChange,
 }: {
+  incidentId: number;
   status: IncidentStatus;
+  postMortem: PostMortemStatus | null;
   canRespond: boolean;
   onChange: (status: IncidentStatus) => void;
 }) {
-  const current = STATUSES.indexOf(status);
+  const steps = [...STATUSES, ...POST_INCIDENT];
+  const current =
+    status === 'resolved'
+      ? STATUSES.length + (postMortem ? POST_INCIDENT_STEP[postMortem] : 0)
+      : STATUSES.indexOf(status);
+  const color = (index: number) =>
+    index >= STATUSES.length ? 'violet' : STATUS_COLOR[STATUSES[index]];
+
   return (
     <Paper withBorder px="xs" py={6} radius="md">
       <Group gap={4} wrap="nowrap">
-        {STATUSES.map((step, index) => (
-          <Fragment key={step}>
-            {index > 0 && (
-              <IconChevronRight size={14} color="var(--mantine-color-dimmed)" />
-            )}
-            <UnstyledButton
-              disabled={!canRespond || index === current}
-              onClick={() => onChange(step)}
-              aria-label={`Move to ${step}`}
+        {steps.map((step, index) => {
+          const live = index < STATUSES.length;
+          const badge = (
+            <Badge
+              size="md"
+              radius="sm"
+              tt="none"
+              fw={index === current ? 700 : 500}
+              color={index <= current ? color(index) : 'gray'}
+              variant={
+                index === current
+                  ? 'filled'
+                  : index < current
+                    ? 'light'
+                    : 'transparent'
+              }
+              leftSection={
+                index < current ? <IconCheck size={12} /> : undefined
+              }
+              style={{
+                cursor:
+                  live && canRespond && index !== current
+                    ? 'pointer'
+                    : undefined,
+              }}
             >
-              <Badge
-                size="md"
-                radius="sm"
-                tt="none"
-                fw={index === current ? 700 : 500}
-                color={index <= current ? STATUS_COLOR[step] : 'gray'}
-                variant={
-                  index === current
-                    ? 'filled'
-                    : index < current
-                      ? 'light'
-                      : 'transparent'
-                }
-                leftSection={
-                  index < current ? <IconCheck size={12} /> : undefined
-                }
-                style={{
-                  cursor:
-                    canRespond && index !== current ? 'pointer' : 'default',
-                }}
-              >
-                {capitalize(step)}
-              </Badge>
-            </UnstyledButton>
-          </Fragment>
-        ))}
+              {capitalize(step)}
+            </Badge>
+          );
+          return (
+            <Fragment key={step}>
+              {index > 0 && (
+                <IconChevronRight
+                  size={14}
+                  color="var(--mantine-color-dimmed)"
+                />
+              )}
+              {live ? (
+                <UnstyledButton
+                  disabled={!canRespond || index === current}
+                  onClick={() => onChange(step as IncidentStatus)}
+                  aria-label={`Move to ${step}`}
+                >
+                  {badge}
+                </UnstyledButton>
+              ) : status === 'resolved' ? (
+                <Link
+                  href={`/incidents/${incidentId}/post-mortem`}
+                  aria-label="Post-mortem"
+                >
+                  {badge}
+                </Link>
+              ) : (
+                badge
+              )}
+            </Fragment>
+          );
+        })}
       </Group>
     </Paper>
   );
@@ -490,11 +548,26 @@ export default function Show({
       </Group>
       <Group mb="lg" gap="xs" data-xray="incident">
         <Lifecycle
+          incidentId={incident.id}
           status={incident.status}
+          postMortem={incident.postMortem?.status ?? null}
           canRespond={canRespond}
           onChange={(status) => change({ status })}
         />
         <SeverityBadge severity={incident.severity} size="lg" radius="sm" />
+        {incident.isPrivate && (
+          <Tooltip label="Only admins, the reporter and the lead can see it">
+            <Badge
+              size="lg"
+              radius="sm"
+              color="grape"
+              variant="light"
+              leftSection={<IconLock size={14} />}
+            >
+              Private
+            </Badge>
+          </Tooltip>
+        )}
         <Badge
           size="lg"
           radius="sm"
@@ -633,8 +706,27 @@ export default function Show({
                   )}
                 </Group>
               </Property>
+              <Property label="Post-mortem">
+                {incident.status === 'resolved' || incident.postMortem ? (
+                  <Anchor
+                    component={Link}
+                    href={`/incidents/${incident.id}/post-mortem`}
+                    size="sm"
+                  >
+                    {incident.postMortem
+                      ? capitalize(incident.postMortem.status)
+                      : 'Write it'}
+                  </Anchor>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    After it is resolved
+                  </Text>
+                )}
+              </Property>
               <Property label="Status page">
-                {incident.isPublic ? (
+                {incident.isPrivate ? (
+                  <Text size="sm">Private</Text>
+                ) : incident.isPublic ? (
                   <Anchor
                     href={`/status/incidents/${incident.id}`}
                     target="_blank"

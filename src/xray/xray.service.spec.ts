@@ -111,18 +111,29 @@ describe('XrayService', () => {
     });
   });
 
+  it('finds the route of a path, for requests that skip the handler', () => {
+    const xray = service();
+    expect(xray.routeFor('POST', '/things/hook')).toBe('ThingsController#hook');
+    expect(xray.routeFor('GET', '/things/12')).toBe('ThingsController#show');
+    expect(xray.routeFor('GET', '/things/12/more')).toBeUndefined();
+  });
+
   it('remembers what it saw a route do', () => {
     const xray = service();
     xray.observe('ThingsController#show', {
       props: [{ path: 'stats', kind: 'defer' }],
     });
-    xray.observe('ThingsController#store', { flash: true });
+    xray.observe('ThingsController#store', { runtime: 'flash' });
+    xray.observe('ThingsController#store', { runtime: 'precognition' });
 
     const routes = xray.catalog();
     expect(routes.find((r) => r.handler.endsWith('#show'))?.props).toEqual([
       { path: 'stats', kind: 'defer' },
     ]);
-    expect(routes.find((r) => r.handler.endsWith('#store'))?.flash).toBe(true);
+    expect(routes.find((r) => r.handler.endsWith('#store'))?.runtime).toEqual([
+      'flash',
+      'precognition',
+    ]);
     expect(xray.siblings(ThingsController).map((r) => r.handler)).toEqual([
       'ThingsController#store',
       'ThingsController#hook',

@@ -14,6 +14,7 @@ export interface IncidentRow {
   title: string;
   severity: Severity;
   status: IncidentStatus;
+  isPrivate: boolean;
   lead: Person | null;
   services: string[];
   declaredAt: string;

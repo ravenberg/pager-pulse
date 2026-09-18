@@ -1,6 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, MoreThan, Not, Repository } from 'typeorm';
+import {
+  Brackets,
+  type FindOptionsWhere,
+  In,
+  IsNull,
+  MoreThan,
+  Not,
+  Repository,
+  type SelectQueryBuilder,
+} from 'typeorm';
 import {
   FollowUp,
   Incident,
@@ -19,6 +28,58 @@ export interface DeclareInput {
   serviceIds: number[];
   leadId: number | null;
   isPublic: boolean;
+  isPrivate?: boolean;
+}
+
+/** A private incident is for admins, its reporter and its lead. */
+export const canSee = (
+  incident: Pick<Incident, 'isPrivate' | 'reporter' | 'lead'>,
+  user: User,
+) =>
+  !incident.isPrivate ||
+  user.role === 'admin' ||
+  incident.reporter?.id === user.id ||
+  incident.lead?.id === user.id;
+
+/** `where` narrowed to the incidents this user may see, for `find()`. */
+export function visibleWhere(
+  user: User,
+  where: FindOptionsWhere<Incident> = {},
+): FindOptionsWhere<Incident> | FindOptionsWhere<Incident>[] {
+  if (user.role === 'admin') return where;
+  return [
+    { ...where, isPrivate: false },
+    { ...where, reporter: { id: user.id } },
+    { ...where, lead: { id: user.id } },
+  ];
+}
+
+/** Follow-ups `where`, narrowed to those of incidents this user may see. */
+export function onVisibleIncident(
+  user: User,
+  where: FindOptionsWhere<FollowUp> = {},
+): FindOptionsWhere<FollowUp>[] {
+  return [visibleWhere(user)]
+    .flat()
+    .map((incident) => ({ ...where, incident }));
+}
+
+/** The same rule for a query builder over `incident`. */
+export function restrictVisible<T extends object>(
+  query: SelectQueryBuilder<T>,
+  user: User,
+  alias = 'incident',
+) {
+  if (user.role === 'admin') return query;
+  return query.andWhere(
+    new Brackets((where) =>
+      where
+        .where(`${alias}.isPrivate = 0`)
+        .orWhere(`${alias}.reporterId = :viewerId`)
+        .orWhere(`${alias}.leadId = :viewerId`),
+    ),
+    { viewerId: user.id },
+  );
 }
 
 export interface ChangeInput {
@@ -41,12 +102,13 @@ export class IncidentsService {
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
 
-  async find(id: number): Promise<Incident> {
+  /** A private incident the viewer may not see is reported as missing. */
+  async find(id: number, viewer: User): Promise<Incident> {
     const incident = await this.incidents.findOne({
       where: { id },
       relations: { lead: true, reporter: true, services: true },
     });
-    if (!incident)
+    if (!incident || !canSee(incident, viewer))
       throw new NotFoundException(`There is no incident INC-${id}.`);
     return incident;
   }
@@ -91,8 +153,10 @@ export class IncidentsService {
     });
   }
 
-  countOpen() {
-    return this.incidents.countBy({ status: Not('resolved') });
+  countOpen(viewer: User) {
+    return this.incidents.countBy(
+      visibleWhere(viewer, { status: Not('resolved') }),
+    );
   }
 
   async declare(input: DeclareInput, reporter: User): Promise<Incident> {
@@ -101,7 +165,8 @@ export class IncidentsService {
         title: input.title,
         summary: input.summary,
         severity: input.severity,
-        isPublic: input.isPublic,
+        isPrivate: input.isPrivate ?? false,
+        isPublic: input.isPublic && !input.isPrivate,
         reporter,
         lead: input.leadId
           ? await this.users.findOneBy({ id: input.leadId })
@@ -123,7 +188,7 @@ export class IncidentsService {
         reporter,
         'update',
         input.summary,
-        input.isPublic,
+        incident.isPublic,
       );
     return incident;
   }
@@ -211,6 +276,11 @@ export class IncidentsService {
       'follow_up',
       `Follow-up added: ${title}`,
     );
+  }
+
+  /** A post-mortem milestone on the incident's timeline. */
+  notePostMortem(incident: Incident, author: User, body: string) {
+    return this.record(incident, author, 'post_mortem', body);
   }
 
   private record(

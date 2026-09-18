@@ -10,6 +10,10 @@ import {
   User,
 } from '../database/entities/index.js';
 import { followUp, incidentRow } from '../incidents/serializers.js';
+import {
+  onVisibleIncident,
+  visibleWhere,
+} from '../incidents/incidents.service.js';
 import { OnCallService } from '../oncall/oncall.service.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -30,7 +34,7 @@ export class DashboardController {
     return {
       active: (
         await this.incidents.find({
-          where: { status: Not('resolved') },
+          where: visibleWhere(user, { status: Not('resolved') }),
           relations: { lead: true, services: true },
           order: { declaredAt: 'DESC' },
         })
@@ -38,7 +42,10 @@ export class DashboardController {
       onCall: await this.oncall.now(),
       myFollowUps: (
         await this.followUps.find({
-          where: { assignee: { id: user.id }, completedAt: IsNull() },
+          where: onVisibleIncident(user, {
+            assignee: { id: user.id },
+            completedAt: IsNull(),
+          }),
           relations: { incident: true, assignee: true },
           order: { createdAt: 'DESC' },
           take: 5,

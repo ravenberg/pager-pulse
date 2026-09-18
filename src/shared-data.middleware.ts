@@ -15,8 +15,9 @@ export class SharedDataMiddleware implements NestMiddleware {
   use(req: AnyRequest & { user?: User }, _res: unknown, next: () => void) {
     // Functions, so they only run when a page renders (and after the guards).
     const shared = requestState(req).shared;
-    shared.openIncidents = () => this.incidents.countOpen();
     // Internal: not for the guests on the public status page.
+    shared.openIncidents = () =>
+      req.user ? this.incidents.countOpen(req.user) : null;
     shared.openAlerts = () => (req.user ? this.alerts.countOpen() : null);
     next();
   }

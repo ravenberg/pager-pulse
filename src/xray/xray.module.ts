@@ -1,5 +1,10 @@
-import { Module } from '@nestjs/common';
+import {
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+} from '@nestjs/common';
 import { APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core';
+import { XrayPrecognitionMiddleware } from './xray-precognition.middleware.js';
 import { XrayController } from './xray.controller.js';
 import { XrayInterceptor } from './xray.interceptor.js';
 import { XrayService } from './xray.service.js';
@@ -16,4 +21,8 @@ import { XrayService } from './xray.service.js';
     { provide: APP_INTERCEPTOR, useClass: XrayInterceptor },
   ],
 })
-export class XrayModule {}
+export class XrayModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(XrayPrecognitionMiddleware).forRoutes('{*path}');
+  }
+}

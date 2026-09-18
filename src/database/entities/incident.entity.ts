@@ -47,6 +47,10 @@ export class Incident {
   @Column('boolean', { default: true })
   isPublic: boolean;
 
+  /** Only admins, the reporter and the lead can see it. Never public. */
+  @Column('boolean', { default: false })
+  isPrivate: boolean;
+
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   lead: Relation<User> | null;
 

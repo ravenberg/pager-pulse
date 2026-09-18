@@ -106,6 +106,7 @@ const REQUEST_COLOR: Record<RequestKind, string> = {
   prefetch: 'lime',
   cached: 'lime',
   mutation: 'orange',
+  validate: 'orange',
 };
 
 const kb = (bytes: number | null) =>

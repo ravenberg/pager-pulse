@@ -2,6 +2,7 @@ export * from './alert-source.entity.js';
 export * from './alert.entity.js';
 export * from './follow-up.entity.js';
 export * from './incident.entity.js';
+export * from './post-mortem.entity.js';
 export * from './schedule-member.entity.js';
 export * from './schedule.entity.js';
 export * from './service.entity.js';

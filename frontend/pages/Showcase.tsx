@@ -33,7 +33,6 @@ const CLIENT_ONLY: FeatureKey[] = [
   'partial-reload',
   'poll',
   'prefetch',
-  'precognition',
   'error-bag',
 ];
 
@@ -49,7 +48,7 @@ function FeatureBadge({ featureKey }: { featureKey: FeatureKey }) {
 }
 
 function RouteRow({ route }: { route: CatalogRoute }) {
-  const found = routeFeatures(route, route.props, route.flash);
+  const found = routeFeatures(route, route.props, route.runtime);
   // On every page; the counts at the top say so once.
   found.delete('view');
   found.delete('shared');
@@ -102,7 +101,7 @@ function RouteRow({ route }: { route: CatalogRoute }) {
 export default function Showcase({ routes }: Props) {
   const usage = new Map<FeatureKey, number>();
   for (const route of routes) {
-    for (const key of routeFeatures(route, route.props, route.flash).keys())
+    for (const key of routeFeatures(route, route.props, route.runtime).keys())
       usage.set(key, (usage.get(key) ?? 0) + 1);
   }
   const unused = (Object.entries(FEATURES) as [FeatureKey, Feature][]).filter(
@@ -202,8 +201,8 @@ export default function Showcase({ routes }: Props) {
         </Table>
       </Card>
       <Text size="xs" c="dimmed">
-        Flash messages appear on an action once it has run. More on each feature
-        in the{' '}
+        Flash messages, live validation and runtime history encryption appear on
+        a route once it has run. More on each feature in the{' '}
         <Anchor href={KITCHEN_SINK} target="_blank" size="xs">
           nestjs-mvc kitchen sink
         </Anchor>

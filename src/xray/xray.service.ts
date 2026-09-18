@@ -72,10 +72,13 @@ export interface RouteInfo {
   schema: string[] | null;
 }
 
+/** Features only visible while a route runs, not in its metadata. */
+export type RuntimeFeature = 'flash' | 'precognition' | 'encrypt-history';
+
 /** What X-ray has seen a route do since the process started. */
 interface Observation {
-  props: PropInfo[];
-  flash: boolean;
+  props: PropInfo[] | null;
+  runtime: Set<RuntimeFeature>;
   lastSeen: number;
 }
 
@@ -90,7 +93,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
  */
 @Injectable()
 export class XrayService implements OnApplicationBootstrap {
-  private routes: (RouteInfo & { key: string })[] = [];
+  private routes: (RouteInfo & { key: string; pattern: RegExp })[] = [];
   private readonly observed = new Map<string, Observation>();
 
   constructor(
@@ -116,7 +119,10 @@ export class XrayService implements OnApplicationBootstrap {
             controller,
             controller.prototype[name] as (...args: unknown[]) => unknown,
           );
-          return { ...info, key: info.handler };
+          const pattern = new RegExp(
+            `^${info.path.replace(/:[^/]+/g, '[^/]+')}/?$`,
+          );
+          return { ...info, key: info.handler, pattern };
         });
     });
   }
@@ -239,23 +245,35 @@ export class XrayService implements OnApplicationBootstrap {
     });
   }
 
-  observe(handler: string, update: Partial<Omit<Observation, 'lastSeen'>>) {
+  observe(
+    handler: string,
+    update: { props?: PropInfo[]; runtime?: RuntimeFeature },
+  ) {
     const previous = this.observed.get(handler);
+    const runtime = new Set(previous?.runtime);
+    if (update.runtime) runtime.add(update.runtime);
     this.observed.set(handler, {
-      props: update.props ?? previous?.props ?? [],
-      flash: (update.flash ?? false) || (previous?.flash ?? false),
+      props: update.props ?? previous?.props ?? null,
+      runtime,
       lastSeen: Date.now(),
     });
   }
 
+  /** The route a method and path belong to, for requests that never reach a handler. */
+  routeFor(method: string, path: string) {
+    return this.routes.find(
+      (route) => route.method === method && route.pattern.test(path),
+    )?.handler;
+  }
+
   /** Every route with what its metadata says and what X-ray saw it do. */
   catalog() {
-    return this.routes.map(({ key, ...route }) => {
+    return this.routes.map(({ key, pattern: _pattern, ...route }) => {
       const seen = this.observed.get(key);
       return {
         ...route,
         props: seen?.props ?? null,
-        flash: seen?.flash ?? false,
+        runtime: [...(seen?.runtime ?? [])],
         lastSeen: seen ? new Date(seen.lastSeen).toISOString() : null,
       };
     });
@@ -266,9 +284,9 @@ export class XrayService implements OnApplicationBootstrap {
     const prefix = `${controller.name}#`;
     return this.routes
       .filter((route) => route.key.startsWith(prefix) && !route.view)
-      .map(({ key: _key, ...route }) => ({
+      .map(({ key: _key, pattern: _pattern, ...route }) => ({
         ...route,
-        flash: this.observed.get(route.handler)?.flash ?? false,
+        runtime: [...(this.observed.get(route.handler)?.runtime ?? [])],
       }));
   }
 

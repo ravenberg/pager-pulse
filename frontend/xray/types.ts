@@ -35,7 +35,7 @@ export interface XrayReport {
   route: RouteInfo;
   props: PropInfo[];
   shared: string[];
-  actions: (RouteInfo & { flash: boolean })[];
+  actions: (RouteInfo & { runtime: RuntimeFeature[] })[];
   request: {
     inertia: boolean;
     prefetch: boolean;
@@ -48,9 +48,12 @@ export interface XrayReport {
   };
 }
 
+/** Seen while a route ran, rather than read from its metadata. */
+export type RuntimeFeature = 'flash' | 'precognition' | 'encrypt-history';
+
 export interface CatalogRoute extends RouteInfo {
   /** Null until the route has run since the server started. */
   props: PropInfo[] | null;
-  flash: boolean;
+  runtime: RuntimeFeature[];
   lastSeen: string | null;
 }

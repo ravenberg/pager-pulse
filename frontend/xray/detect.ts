@@ -1,6 +1,6 @@
 import { FEATURES, type FeatureKey } from './features';
 import type { RequestEntry, RequestKind } from './requestLog';
-import type { PropInfo, RouteInfo, XrayReport } from './types';
+import type { PropInfo, RouteInfo, RuntimeFeature, XrayReport } from './types';
 
 /** A feature in use, with where it shows: prop paths, routes, requests. */
 export interface Evidence {
@@ -28,7 +28,7 @@ const routeLabel = (route: RouteInfo) => `${route.method} ${route.path}`;
 export function routeFeatures(
   route: RouteInfo,
   props: PropInfo[] | null,
-  flash: boolean,
+  runtime: RuntimeFeature[],
   found: Found = new Map(),
 ): Found {
   if (route.view) {
@@ -45,7 +45,8 @@ export function routeFeatures(
     add(found, 'validation', {
       label: `${routeLabel(route)} (${route.schema.join(', ')})`,
     });
-  if (flash) add(found, 'flash', { label: routeLabel(route) });
+  for (const feature of runtime)
+    add(found, feature, { label: routeLabel(route) });
   for (const prop of props ?? []) {
     if (prop.kind === 'eager') continue;
     add(found, prop.kind, {
@@ -63,6 +64,7 @@ const CLIENT: Partial<Record<RequestKind, FeatureKey>> = {
   cached: 'prefetch',
   deferred: 'defer',
   scroll: 'scroll',
+  validate: 'precognition',
 };
 
 /** The requests since the page was entered: from its visit onwards. */
@@ -79,21 +81,28 @@ export function requestsOnPage(entries: RequestEntry[], url: string) {
 /** Everything the current page shows: the server's report plus its requests. */
 export function pageFeatures(
   report: XrayReport,
-  page: { encryptHistory?: boolean; flash?: Record<string, unknown> },
+  page: {
+    encryptHistory?: boolean;
+    clearHistory?: boolean;
+    flash?: Record<string, unknown>;
+  },
   requests: RequestEntry[],
 ): Found {
   const found: Found = new Map();
   add(found, 'view', { label: report.route.handler });
-  routeFeatures(report.route, report.props, false, found);
+  routeFeatures(report.route, report.props, [], found);
   if (report.shared.length)
     add(found, 'shared', { label: report.shared.join(', ') });
-  if (page.encryptHistory) add(found, 'encrypt-history');
+  if (page.encryptHistory)
+    add(found, 'encrypt-history', { label: 'this page' });
+  if (page.clearHistory)
+    add(found, 'encrypt-history', { label: 'history cleared' });
   if (page.flash && Object.keys(page.flash).length)
     add(found, 'flash', { label: 'this response' });
   // What the forms on this page post to. Behind the login like the page is,
   // so they are not listed again under the redirect.
   for (const action of report.actions)
-    routeFeatures({ ...action, public: true }, null, action.flash, found);
+    routeFeatures({ ...action, public: true }, null, action.runtime, found);
 
   for (const request of requests) {
     if (request.errorBag)

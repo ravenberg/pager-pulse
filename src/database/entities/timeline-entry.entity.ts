@@ -16,6 +16,7 @@ export const TIMELINE_KINDS = [
   'severity',
   'lead',
   'follow_up',
+  'post_mortem',
 ] as const;
 export type TimelineKind = (typeof TIMELINE_KINDS)[number];
 

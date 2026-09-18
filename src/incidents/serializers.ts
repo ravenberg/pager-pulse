@@ -19,6 +19,7 @@ export function incidentRow(incident: Incident) {
     title: incident.title,
     severity: incident.severity,
     status: incident.status,
+    isPrivate: incident.isPrivate,
     lead: person(incident.lead),
     services: (incident.services ?? []).map((service) => service.name),
     declaredAt: incident.declaredAt.toISOString(),

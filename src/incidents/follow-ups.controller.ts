@@ -13,6 +13,7 @@ import { IsNull, Not, Repository } from 'typeorm';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Responder } from '../auth/roles.decorator.js';
 import { FollowUp, User } from '../database/entities/index.js';
+import { canSee, onVisibleIncident } from './incidents.service.js';
 import { followUp } from './serializers.js';
 
 @Controller('follow-ups')
@@ -31,10 +32,10 @@ export class FollowUpsController {
     @Query('state') state = 'open',
   ) {
     const items = await this.followUps.find({
-      where: {
+      where: onVisibleIncident(user, {
         ...(scope === 'mine' ? { assignee: { id: user.id } } : {}),
         completedAt: state === 'open' ? IsNull() : Not(IsNull()),
-      },
+      }),
       relations: { assignee: true, incident: true },
       order: { createdAt: 'DESC' },
       take: 200,
@@ -49,9 +50,16 @@ export class FollowUpsController {
   /** Ticks a follow-up off, or reopens it. */
   @Patch(':id/toggle')
   @Responder()
-  async toggle(@Param('id', ParseIntPipe) id: number) {
-    const item = await this.followUps.findOneBy({ id });
-    if (!item) throw new NotFoundException('That follow-up no longer exists.');
+  async toggle(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User,
+  ) {
+    const item = await this.followUps.findOne({
+      where: { id },
+      relations: { incident: { reporter: true, lead: true } },
+    });
+    if (!item || (item.incident && !canSee(item.incident, user)))
+      throw new NotFoundException('That follow-up no longer exists.');
     await this.followUps.update(id, {
       completedAt: item.completedAt ? null : new Date(),
     });

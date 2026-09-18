@@ -48,6 +48,7 @@ export default function Create({ services, users }: Props) {
     serviceIds: [] as string[],
     leadId: null as string | null,
     isPublic: true,
+    isPrivate: false,
   });
 
   function submit(event: FormEvent) {
@@ -137,9 +138,18 @@ export default function Create({ services, users }: Props) {
             />
             <Switch
               label="Show on the public status page"
-              checked={form.data.isPublic}
+              checked={form.data.isPublic && !form.data.isPrivate}
+              disabled={form.data.isPrivate}
               onChange={(e) =>
                 form.setData('isPublic', e.currentTarget.checked)
+              }
+            />
+            <Switch
+              label="Private"
+              description="Only admins, you and the lead can see it. For security or HR matters."
+              checked={form.data.isPrivate}
+              onChange={(e) =>
+                form.setData('isPrivate', e.currentTarget.checked)
               }
             />
             <Group justify="flex-end" mt="md">

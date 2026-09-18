@@ -9,7 +9,8 @@ export type RequestKind =
   | 'scroll'
   | 'prefetch'
   | 'cached'
-  | 'mutation';
+  | 'mutation'
+  | 'validate';
 
 export interface RequestEntry {
   id: string;
@@ -171,6 +172,30 @@ export function installRequestLog(initialUrl: string) {
           : 'ok',
     });
   });
+
+  // Precognition's validate-only requests go through laravel-precognition's
+  // own fetch client, not the router; in this app the router uses XHR, so a
+  // same-origin fetch is one of them. Resource Timing has no method or
+  // headers, hence the inference.
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries() as PerformanceResourceTiming[]) {
+      if (entry.initiatorType !== 'fetch') continue;
+      const url = new URL(entry.name);
+      if (url.origin !== location.origin) continue;
+      add({
+        id: `validate-${entry.startTime}`,
+        at: Date.now(),
+        kind: 'validate',
+        method: 'fetch',
+        url: url.pathname,
+        only: [],
+        except: [],
+        ms: Math.round(entry.duration),
+        bytes: entry.encodedBodySize || null,
+        outcome: 'ok',
+      });
+    }
+  }).observe({ type: 'resource' });
 
   // A click on a prefetched link: no request at all.
   router.on('navigate', (event) => {

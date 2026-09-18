@@ -19,6 +19,7 @@ import { paginate } from '../common/pagination.js';
 import {
   Alert,
   Incident,
+  PostMortem,
   SEVERITIES,
   Service,
   User,
@@ -30,7 +31,11 @@ import {
   UpdateSchema,
 } from './incidents.schemas.js';
 import { alertRow } from '../alerts/serializers.js';
-import { IncidentsService } from './incidents.service.js';
+import {
+  IncidentsService,
+  restrictVisible,
+  visibleWhere,
+} from './incidents.service.js';
 import {
   followUp,
   incidentRow,
@@ -57,6 +62,8 @@ export class IncidentsController {
     @InjectRepository(Service) private readonly services: Repository<Service>,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
+    @InjectRepository(PostMortem)
+    private readonly postMortems: Repository<PostMortem>,
   ) {}
 
   @Get()
@@ -65,13 +72,18 @@ export class IncidentsController {
     @Query('state') state = 'open',
     @Query('severity') severity = '',
     @Query('search') search = '',
+    @CurrentUser() user: User,
     @Query('page') page?: string,
   ) {
     return {
       filters: { state, severity, search },
       counts: async () => ({
-        open: await this.repository.countBy({ status: Not('resolved') }),
-        resolved: await this.repository.countBy({ status: 'resolved' }),
+        open: await this.repository.countBy(
+          visibleWhere(user, { status: Not('resolved') }),
+        ),
+        resolved: await this.repository.countBy(
+          visibleWhere(user, { status: 'resolved' }),
+        ),
       }),
       // Infinite scroll: the client asks for ?page=N and appends `incidents.data`.
       // Changing a filter resets the prop, so the list starts over.
@@ -81,6 +93,7 @@ export class IncidentsController {
           .leftJoinAndSelect('incident.lead', 'lead')
           .leftJoinAndSelect('incident.services', 'service')
           .orderBy('incident.declaredAt', 'DESC');
+        restrictVisible(query, user);
 
         if (state === 'open') query.andWhere("incident.status != 'resolved'");
         if (state === 'resolved')
@@ -140,7 +153,14 @@ export class IncidentsController {
     @Headers(TIMELINE_AFTER_HEADER) afterHeader: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const incident = await this.incidents.find(id);
+    const incident = await this.incidents.find(id, user);
+    // What the browser keeps in history for a private incident is encrypted,
+    // so after a logout the back button cannot bring it back. Decided per
+    // request, where @EncryptHistory() would decide per route.
+    if (incident.isPrivate) this.view.encryptHistory();
+    const postMortem = await this.postMortems.findOneBy({
+      incident: { id: incident.id },
+    });
     const tab: Tab = TABS.find((t) => t === tabQuery) ?? 'updates';
     const onTab = <T>(name: Tab, value: () => Promise<T>) =>
       name === tab ? value : optional(value);
@@ -153,6 +173,10 @@ export class IncidentsController {
         summary: incident.summary,
         isPublic: incident.isPublic,
         reporter: person(incident.reporter),
+        postMortem: postMortem && {
+          status: postMortem.status,
+          publishedAt: postMortem.publishedAt?.toISOString() ?? null,
+        },
       },
       counts: async () => ({
         ...(await this.incidents.countsOf(incident)),
@@ -198,7 +222,11 @@ export class IncidentsController {
     @Body({ schema: ChangeSchema }) body: z.infer<typeof ChangeSchema>,
     @CurrentUser() user: User,
   ) {
-    await this.incidents.change(await this.incidents.find(id), body, user);
+    await this.incidents.change(
+      await this.incidents.find(id, user),
+      body,
+      user,
+    );
     return this.view.back();
   }
 
@@ -209,7 +237,7 @@ export class IncidentsController {
     @Body({ schema: UpdateSchema }) body: z.infer<typeof UpdateSchema>,
     @CurrentUser() user: User,
   ) {
-    const incident = await this.incidents.find(id);
+    const incident = await this.incidents.find(id, user);
     if (body.status)
       await this.incidents.change(incident, { status: body.status }, user);
     await this.incidents.postUpdate(incident, user, body.body, body.isPublic);
@@ -224,7 +252,7 @@ export class IncidentsController {
     @CurrentUser() user: User,
   ) {
     await this.incidents.addFollowUp(
-      await this.incidents.find(id),
+      await this.incidents.find(id, user),
       user,
       body.title,
       body.assigneeId,

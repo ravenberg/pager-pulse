@@ -8,9 +8,10 @@ import {
   Table,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
-import { IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconLock, IconPlus, IconSearch } from '@tabler/icons-react';
 import { InfiniteScroll, Link, router, usePage } from 'nestjs-mvc/react';
 import { useState } from 'react';
 import { SeverityBadge, StatusBadge } from '../../components/Badges';
@@ -134,14 +135,24 @@ export default function Index({ filters, counts, incidents }: Props) {
                   onClick={() => router.visit(`/incidents/${incident.id}`)}
                 >
                   <Table.Td>
-                    <Text
-                      fw={600}
-                      size="sm"
-                      component={Link}
-                      href={`/incidents/${incident.id}`}
-                    >
-                      {incident.title}
-                    </Text>
+                    <Group gap={6} wrap="nowrap">
+                      {incident.isPrivate && (
+                        <Tooltip label="Private">
+                          <IconLock
+                            size={14}
+                            color="var(--mantine-color-grape-6)"
+                          />
+                        </Tooltip>
+                      )}
+                      <Text
+                        fw={600}
+                        size="sm"
+                        component={Link}
+                        href={`/incidents/${incident.id}`}
+                      >
+                        {incident.title}
+                      </Text>
+                    </Group>
                     <Text size="xs" c="dimmed">
                       {incident.reference} · {relative(incident.declaredAt)}
                       {incident.services.length > 0 &&
