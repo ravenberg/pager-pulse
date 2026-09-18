@@ -1,14 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
-import {
-  Alert,
-  AlertSource,
-  FollowUp,
-  Incident,
-  Service,
-  TimelineEntry,
-  User,
-} from '../database/entities/index.js';
+import { entities } from '../database/database.module.js';
+import { Alert, AlertSource } from '../database/entities/index.js';
 import type { IncidentsService } from '../incidents/incidents.service.js';
 import { IngestSchema } from './alerts.schemas.js';
 import { AlertsService } from './alerts.service.js';
@@ -22,15 +15,7 @@ describe('AlertsService.ingest', () => {
     db = await new DataSource({
       type: 'better-sqlite3',
       database: ':memory:',
-      entities: [
-        Alert,
-        AlertSource,
-        Service,
-        Incident,
-        TimelineEntry,
-        FollowUp,
-        User,
-      ],
+      entities,
       synchronize: true,
     }).initialize();
     alerts = new AlertsService(

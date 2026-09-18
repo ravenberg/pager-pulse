@@ -1,12 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
-import {
-  FollowUp,
-  Incident,
-  Service,
-  TimelineEntry,
-  User,
-} from '../database/entities/index.js';
+import { entities } from '../database/database.module.js';
+import { Incident, User } from '../database/entities/index.js';
 import { canSee, restrictVisible, visibleWhere } from './incidents.service.js';
 
 describe('private incidents', () => {
@@ -17,7 +12,7 @@ describe('private incidents', () => {
     db = await new DataSource({
       type: 'better-sqlite3',
       database: ':memory:',
-      entities: [Incident, Service, TimelineEntry, FollowUp, User],
+      entities,
       synchronize: true,
     }).initialize();
     const users = db.getRepository(User);

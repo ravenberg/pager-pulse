@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { SignedUrls, createKeyRing } from 'nestjs-mvc';
 import { DataSource } from 'typeorm';
+import { entities } from '../database/database.module.js';
 import { type Incident, StatusSubscriber } from '../database/entities/index.js';
 import type { Email, MailService } from '../mail/mail.service.js';
 import { SubscriptionsService } from './subscriptions.service.js';
@@ -17,7 +18,7 @@ describe('SubscriptionsService', () => {
     db = await new DataSource({
       type: 'better-sqlite3',
       database: ':memory:',
-      entities: [StatusSubscriber],
+      entities,
       synchronize: true,
     }).initialize();
     sent = [];

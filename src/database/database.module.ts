@@ -20,7 +20,8 @@ import {
   User,
 } from './entities/index.js';
 
-const entities = [
+/** Every entity; tests build their in-memory databases from it too. */
+export const entities = [
   User,
   AlertSource,
   Alert,
