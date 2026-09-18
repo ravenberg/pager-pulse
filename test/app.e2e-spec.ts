@@ -2,6 +2,9 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type TestAgent from 'supertest/lib/agent.js';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DataSource } from 'typeorm';
 
 /**
@@ -54,7 +57,10 @@ function browser() {
       .expect(302);
   }
 
-  return { agent: agent as TestAgent, visit, login };
+  /** The headers the Inertia client sends with a form submission. */
+  const inertia = () => ({ 'X-Inertia': 'true', 'X-Inertia-Version': version });
+
+  return { agent: agent as TestAgent, visit, login, inertia };
 }
 
 describe('pages', () => {
@@ -198,6 +204,52 @@ describe('forms', () => {
     );
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) expect(row).toContain(',critical,resolved,');
+  });
+});
+
+describe('attachments', () => {
+  it('uploads a file, refuses a wrong one on its form field, and serves it back', async () => {
+    process.env.STORAGE_PATH = await mkdtemp(join(tmpdir(), 'pager-pulse-'));
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    const [incident] = await db.query('SELECT id FROM incident LIMIT 1');
+    const url = `/incidents/${incident.id}/attachments`;
+    await ada.visit(`/incidents/${incident.id}`);
+
+    await ada.agent
+      .post(url)
+      .set({
+        ...ada.inertia(),
+        Referer: `/incidents/${incident.id}`,
+        'X-Inertia-Error-Bag': 'attachment',
+      })
+      .attach('file', Buffer.from('MZ'), {
+        filename: 'tool.exe',
+        contentType: 'application/x-msdownload',
+      })
+      .expect(302);
+    const refused = (await ada.visit(`/incidents/${incident.id}`)).body;
+    expect(refused.props.errors).toEqual({
+      attachment: { file: 'Images, text, CSV, JSON, PDF and archives only.' },
+    });
+
+    await ada.agent
+      .post(url)
+      .set({ ...ada.inertia(), Referer: `/incidents/${incident.id}` })
+      .attach('file', Buffer.from('{"ok":true}'), {
+        filename: 'dump.json',
+        contentType: 'application/json',
+      })
+      .expect(302);
+    const page = (await ada.visit(`/incidents/${incident.id}`)).body;
+    const [file] = page.props.attachments;
+    expect(file).toMatchObject({ filename: 'dump.json', size: 11 });
+
+    const download = await ada.agent.get(`${url}/${file.id}`).expect(200);
+    expect(download.headers['content-disposition']).toBe(
+      'attachment; filename="dump.json"',
+    );
+    expect(download.text).toBe('{"ok":true}');
   });
 });
 

@@ -38,6 +38,7 @@ import {
 } from '@tabler/icons-react';
 import { Head, Link, router, useForm, usePoll } from 'nestjs-mvc/react';
 import { Fragment, type FormEvent, type ReactNode } from 'react';
+import { type AttachmentRow, Attachments } from '../../components/Attachments';
 import { AlertStatusBadge, SeverityBadge } from '../../components/Badges';
 import { EscalateButton } from '../../components/EscalateButton';
 import { FollowUpItem } from '../../components/FollowUpItem';
@@ -87,6 +88,7 @@ interface Props {
   followUps?: FollowUpRow[];
   alerts?: AlertRow[];
   users: Person[];
+  attachments: AttachmentRow[];
   /** Loaded when the escalate dialog opens. */
   escalationPaths?: { id: number; name: string }[];
   canRespond: boolean;
@@ -492,6 +494,7 @@ export default function Show({
   followUps,
   alerts,
   users,
+  attachments,
   escalationPaths,
   canRespond,
 }: Props) {
@@ -660,99 +663,106 @@ export default function Show({
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <Card withBorder padding="lg" data-xray="users">
-            <Stack gap="sm">
-              <Property label="Severity">
-                <Select
-                  size="xs"
-                  w={150}
-                  disabled={!canRespond}
-                  data={options(SEVERITIES)}
-                  value={incident.severity}
-                  allowDeselect={false}
-                  onChange={(severity) => severity && change({ severity })}
-                />
-              </Property>
-              <Property label="Lead">
-                <Select
-                  size="xs"
-                  w={150}
-                  disabled={!canRespond}
-                  placeholder="Unassigned"
-                  searchable
-                  clearable
-                  data={users.map((user) => ({
-                    value: String(user.id),
-                    label: user.name,
-                  }))}
-                  value={incident.lead ? String(incident.lead.id) : null}
-                  onChange={(leadId) => change({ leadId })}
-                />
-              </Property>
-              <Divider />
-              <Property label="Reporter">
-                <Text size="sm">{incident.reporter?.name ?? '—'}</Text>
-              </Property>
-              <Property label="Declared">
-                <Text size="sm">{dateTime(incident.declaredAt)}</Text>
-              </Property>
-              {incident.resolvedAt && (
-                <Property label="Resolved">
-                  <Text size="sm">{dateTime(incident.resolvedAt)}</Text>
+          <Stack>
+            <Card withBorder padding="lg" data-xray="users">
+              <Stack gap="sm">
+                <Property label="Severity">
+                  <Select
+                    size="xs"
+                    w={150}
+                    disabled={!canRespond}
+                    data={options(SEVERITIES)}
+                    value={incident.severity}
+                    allowDeselect={false}
+                    onChange={(severity) => severity && change({ severity })}
+                  />
                 </Property>
-              )}
-              <Property label="Services">
-                <Group gap={4} justify="flex-end">
-                  {incident.services.length ? (
-                    incident.services.map((service) => (
-                      <Badge
-                        key={service}
-                        variant="outline"
-                        color="gray"
-                        size="sm"
-                      >
-                        {service}
-                      </Badge>
-                    ))
+                <Property label="Lead">
+                  <Select
+                    size="xs"
+                    w={150}
+                    disabled={!canRespond}
+                    placeholder="Unassigned"
+                    searchable
+                    clearable
+                    data={users.map((user) => ({
+                      value: String(user.id),
+                      label: user.name,
+                    }))}
+                    value={incident.lead ? String(incident.lead.id) : null}
+                    onChange={(leadId) => change({ leadId })}
+                  />
+                </Property>
+                <Divider />
+                <Property label="Reporter">
+                  <Text size="sm">{incident.reporter?.name ?? '—'}</Text>
+                </Property>
+                <Property label="Declared">
+                  <Text size="sm">{dateTime(incident.declaredAt)}</Text>
+                </Property>
+                {incident.resolvedAt && (
+                  <Property label="Resolved">
+                    <Text size="sm">{dateTime(incident.resolvedAt)}</Text>
+                  </Property>
+                )}
+                <Property label="Services">
+                  <Group gap={4} justify="flex-end">
+                    {incident.services.length ? (
+                      incident.services.map((service) => (
+                        <Badge
+                          key={service}
+                          variant="outline"
+                          color="gray"
+                          size="sm"
+                        >
+                          {service}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Text size="sm">—</Text>
+                    )}
+                  </Group>
+                </Property>
+                <Property label="Post-mortem">
+                  {incident.status === 'resolved' || incident.postMortem ? (
+                    <Anchor
+                      component={Link}
+                      href={`/incidents/${incident.id}/post-mortem`}
+                      size="sm"
+                    >
+                      {incident.postMortem
+                        ? capitalize(incident.postMortem.status)
+                        : 'Write it'}
+                    </Anchor>
                   ) : (
-                    <Text size="sm">—</Text>
+                    <Text size="sm" c="dimmed">
+                      After it is resolved
+                    </Text>
                   )}
-                </Group>
-              </Property>
-              <Property label="Post-mortem">
-                {incident.status === 'resolved' || incident.postMortem ? (
-                  <Anchor
-                    component={Link}
-                    href={`/incidents/${incident.id}/post-mortem`}
-                    size="sm"
-                  >
-                    {incident.postMortem
-                      ? capitalize(incident.postMortem.status)
-                      : 'Write it'}
-                  </Anchor>
-                ) : (
-                  <Text size="sm" c="dimmed">
-                    After it is resolved
-                  </Text>
-                )}
-              </Property>
-              <Property label="Status page">
-                {incident.isPrivate ? (
-                  <Text size="sm">Private</Text>
-                ) : incident.isPublic ? (
-                  <Anchor
-                    href={`/status/incidents/${incident.id}`}
-                    target="_blank"
-                    size="sm"
-                  >
-                    Public
-                  </Anchor>
-                ) : (
-                  <Text size="sm">Internal</Text>
-                )}
-              </Property>
-            </Stack>
-          </Card>
+                </Property>
+                <Property label="Status page">
+                  {incident.isPrivate ? (
+                    <Text size="sm">Private</Text>
+                  ) : incident.isPublic ? (
+                    <Anchor
+                      href={`/status/incidents/${incident.id}`}
+                      target="_blank"
+                      size="sm"
+                    >
+                      Public
+                    </Anchor>
+                  ) : (
+                    <Text size="sm">Internal</Text>
+                  )}
+                </Property>
+              </Stack>
+            </Card>
+            <Attachments
+              incidentId={incident.id}
+              attachments={attachments}
+              canRespond={canRespond}
+            />
+          </Stack>
         </Grid.Col>
       </Grid>
     </>

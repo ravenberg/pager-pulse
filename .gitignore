@@ -63,3 +63,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Local MCP servers (editor-specific)
 .mcp.json
+
+# Uploaded files
+/storage

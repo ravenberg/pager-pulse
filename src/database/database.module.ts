@@ -4,6 +4,7 @@ import { DatabaseSeeder } from './database.seeder.js';
 import {
   Alert,
   AlertSource,
+  Attachment,
   Escalation,
   EscalationPath,
   FollowUp,
@@ -33,6 +34,7 @@ const entities = [
   EscalationPath,
   Escalation,
   StatusSubscriber,
+  Attachment,
 ];
 
 @Global()

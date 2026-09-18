@@ -1,3 +1,4 @@
+export * from './attachment.entity.js';
 export * from './alert-source.entity.js';
 export * from './alert.entity.js';
 export * from './follow-up.entity.js';

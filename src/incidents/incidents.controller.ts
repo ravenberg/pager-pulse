@@ -21,6 +21,7 @@ import { toCsv } from '../common/csv.js';
 import { paginate } from '../common/pagination.js';
 import {
   Alert,
+  Attachment,
   EscalationPath,
   Incident,
   PostMortem,
@@ -70,6 +71,8 @@ export class IncidentsController {
     private readonly postMortems: Repository<PostMortem>,
     @InjectRepository(EscalationPath)
     private readonly paths: Repository<EscalationPath>,
+    @InjectRepository(Attachment)
+    private readonly attachments: Repository<Attachment>,
   ) {}
 
   @Get()
@@ -279,6 +282,21 @@ export class IncidentsController {
         ).map(alertRow),
       ),
       users: peopleOnce(this.users),
+      attachments: async () =>
+        (
+          await this.attachments.find({
+            where: { incident: { id: incident.id } },
+            relations: { uploadedBy: true },
+            order: { createdAt: 'DESC' },
+          })
+        ).map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          mimeType: a.mimeType,
+          size: a.size,
+          uploadedBy: person(a.uploadedBy),
+          createdAt: a.createdAt.toISOString(),
+        })),
       // For the escalate dialog, when it opens.
       escalationPaths: optional(async () =>
         (await this.paths.find({ order: { name: 'ASC' } })).map(
