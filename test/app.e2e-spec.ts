@@ -277,6 +277,50 @@ describe('forms', () => {
   });
 });
 
+describe('saved views', () => {
+  it('keeps named filters per person, and refuses a name twice on its own form', async () => {
+    const grace = browser();
+    await grace.login('grace@pagerpulse.dev');
+    await grace.visit('/incidents');
+    const save = (name: string) =>
+      grace.agent
+        .post('/incidents/views')
+        .set({
+          ...grace.inertia(),
+          Referer: '/incidents',
+          'X-Inertia-Error-Bag': 'saveView',
+        })
+        .send({
+          name,
+          filters: { state: 'all', severity: 'major', search: '' },
+          columns: ['status', 'lead'],
+        });
+
+    await save('Major').expect(302);
+    await save('Major').expect(302);
+    const page = (await grace.visit('/incidents')).body;
+    expect(page.props.errors).toEqual({
+      saveView: { name: 'You already have a view with that name.' },
+    });
+    expect(page.props.views).toEqual([
+      expect.objectContaining({
+        name: 'Major',
+        filters: { state: 'all', severity: 'major', search: '' },
+        columns: ['status', 'lead'],
+      }),
+    ]);
+
+    // Someone else's view is not there to remove.
+    const ada = browser();
+    await ada.login('ada@pagerpulse.dev');
+    await ada.visit('/incidents');
+    const removed = await ada.agent
+      .delete(`/incidents/views/${page.props.views[0].id}`)
+      .set({ ...ada.inertia(), Referer: '/incidents' });
+    expect(removed.status).toBe(404);
+  });
+});
+
 describe('incident board', () => {
   it('moves a card with a PATCH whose answer carries only the board', async () => {
     const [incident] = await db.query(

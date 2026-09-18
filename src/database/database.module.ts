@@ -16,6 +16,7 @@ import {
   Service,
   StatusSubscriber,
   Team,
+  SavedView,
   TimelineEntry,
   User,
 } from './entities/index.js';
@@ -38,6 +39,8 @@ export const entities = [
   StatusSubscriber,
   Attachment,
   Team,
+  SavedView,
+  SavedView,
 ];
 
 @Global()

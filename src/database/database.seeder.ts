@@ -16,6 +16,7 @@ import {
   ScheduleOverride,
   Service,
   type Severity,
+  SavedView,
   Team,
   TimelineEntry,
   User,
@@ -83,6 +84,30 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     await this.seedWriteUp();
     if ((await this.db.getRepository(Team).count()) === 0)
       await this.seedTeams();
+    if ((await this.db.getRepository(SavedView).count()) === 0)
+      await this.seedSavedViews();
+  }
+
+  /** Two views Ada keeps on the incident list. */
+  private async seedSavedViews() {
+    const ada = await this.db
+      .getRepository(User)
+      .findOneBy({ email: 'ada@pagerpulse.dev' });
+    if (!ada) return;
+    await this.db.getRepository(SavedView).save([
+      {
+        name: 'Critical, all time',
+        filters: { state: 'all', severity: 'critical', search: '' },
+        columns: ['status', 'lead', 'duration'],
+        user: ada,
+      },
+      {
+        name: 'Memory leaks',
+        filters: { state: 'all', severity: '', search: 'memory' },
+        columns: ['severity', 'status', 'services', 'duration'],
+        user: ada,
+      },
+    ]);
   }
 
   private async seed() {

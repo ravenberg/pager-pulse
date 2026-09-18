@@ -25,6 +25,7 @@ import {
   EscalationPath,
   Incident,
   PostMortem,
+  SavedView,
   SEVERITIES,
   Service,
   User,
@@ -36,6 +37,7 @@ import {
   UpdateSchema,
 } from './incidents.schemas.js';
 import { alertRow } from '../alerts/serializers.js';
+import { savedView } from './saved-views.controller.js';
 import {
   IncidentsService,
   restrictVisible,
@@ -73,6 +75,8 @@ export class IncidentsController {
     private readonly paths: Repository<EscalationPath>,
     @InjectRepository(Attachment)
     private readonly attachments: Repository<Attachment>,
+    @InjectRepository(SavedView)
+    private readonly savedViews: Repository<SavedView>,
   ) {}
 
   @Get()
@@ -86,6 +90,13 @@ export class IncidentsController {
   ) {
     return {
       filters: { state, severity, search },
+      views: async () =>
+        (
+          await this.savedViews.find({
+            where: { user: { id: user.id } },
+            order: { createdAt: 'ASC' },
+          })
+        ).map(savedView),
       counts: async () => ({
         open: await this.repository.countBy(
           visibleWhere(user, { status: Not('resolved') }),

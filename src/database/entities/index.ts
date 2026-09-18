@@ -14,3 +14,4 @@ export * from './escalation.entity.js';
 export * from './schedule-override.entity.js';
 export * from './status-subscriber.entity.js';
 export * from './team.entity.js';
+export * from './saved-view.entity.js';
