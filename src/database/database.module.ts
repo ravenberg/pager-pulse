@@ -40,7 +40,6 @@ export const entities = [
   Attachment,
   Team,
   SavedView,
-  SavedView,
 ];
 
 @Global()

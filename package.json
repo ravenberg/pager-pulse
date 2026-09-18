@@ -20,7 +20,8 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p frontend/tsconfig.json",
-    "alerts:demo": "node scripts/fire-alerts.mjs"
+    "alerts:demo": "node scripts/fire-alerts.mjs",
+    "db:reset": "rm -f pager-pulse.sqlite pager-pulse.sqlite-wal pager-pulse.sqlite-shm && rm -rf storage"
   },
   "dependencies": {
     "@inertiajs/react": "^3.7.1",
